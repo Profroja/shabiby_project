@@ -1,0 +1,115 @@
+{% extends 'branchagent_dashboard.html' %}
+
+{% block title %}In Transit Cargos - 📦 Shabiby Cargo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+								<div class="page-block">
+									<div class="row align-items-center">
+										<div class="col-md-12">
+											<div class="page-header-title">
+												<h5 class="m-b-10">In Transit Cargos</h5>
+											</div>
+											<ul class="breadcrumb">
+												<li class="breadcrumb-item"><a href="{% url 'branchagent_dashboard' %}"><i class="feather icon-home"></i></a></li>
+												<li class="breadcrumb-item"><a href="#!">Cargo Management</a></li>
+												<li class="breadcrumb-item"><a href="#!">In Transit</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<div class="col-xl-12">
+									<div class="card">
+										<div class="card-header">
+											<h5>Cargos Currently In Transit</h5>
+											<span class="d-block m-t-5">Shipments currently on the way to their destinations</span>
+										</div>
+										<div class="card-body table-border-style">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>#</th>
+															<th>Tracking ID</th>
+															<th>Origin</th>
+															<th>Destination</th>
+															<th>Vehicle</th>
+															<th>Conductor</th>
+															<th>Registered By</th>
+															<th>Weight (kg)</th>
+															<th>Shipped Date</th>
+															<th>Actions</th>
+														</tr>
+													</thead>
+													<tbody>
+														{% for cargo in cargos %}
+														<tr>
+															<td>{{ forloop.counter }}</td>
+															<td><strong>{{ cargo.tracking_number }}</strong></td>
+															<td>{{ cargo.origin_branch.location }}</td>
+															<td>{{ cargo.destination_branch.location }}</td>
+															<td>
+															{% if cargo.assigned_vehicle %}
+																{{ cargo.assigned_vehicle.plate_number }}<br>
+																<small class="text-muted">{{ cargo.assigned_vehicle.model }}</small>
+															{% else %}
+																<span class="text-muted">Not assigned</span>
+															{% endif %}
+														</td>
+														<td>
+															{% if cargo.shipped_by %}
+																{{ cargo.shipped_by.user.get_full_name }}
+															{% else %}
+																<span class="text-muted">Not assigned</span>
+															{% endif %}
+														</td>
+														<td>
+															{% if cargo.registered_by %}
+																{{ cargo.registered_by.user.get_full_name }}
+															{% else %}
+																<span class="text-muted">N/A</span>
+															{% endif %}
+														</td>
+														<td>{{ cargo.weight }}</td>
+														<td>{{ cargo.shipped_at|date:"d M Y H:i" }}</td>
+														<td>
+															<a href="{% url 'thermal_receipt' cargo.id %}" class="btn btn-sm btn-success" title="View Receipt" target="_blank">
+																<i class="feather icon-printer"></i>
+															</a>
+															<button class="btn btn-sm btn-info view-cargo-details-btn" 
+																data-cargo-id="{{ cargo.id }}"
+																data-cargo-number="{{ cargo.cargo_number }}"
+																data-tracking-number="{{ cargo.tracking_number }}"
+																data-sender="{{ cargo.sender.full_name }}"
+																data-receiver="{{ cargo.receiver.full_name }}"
+																data-origin="{{ cargo.origin_branch.location }}"
+																data-destination="{{ cargo.destination_branch.location }}"
+																data-description="{{ cargo.cargo_description }}"
+																data-quantity="{{ cargo.quantity }}"
+																data-weight="{{ cargo.weight }}"
+																data-value="{{ cargo.cargo_value }}"
+																data-shipping-fee="{{ cargo.shipping_amount }}"
+																data-status="{{ cargo.get_status_display }}"
+																title="View Details">
+																<i class="feather icon-eye"></i>
+															</button>
+														</td>
+														</tr>
+														{% empty %}
+														<tr>
+															<td colspan="10" class="text-center">No cargos in transit</td>
+														</tr>
+														{% endfor %}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+</div>
+
+{% include 'cargo_details_modal.html' %}
+{% endblock %}

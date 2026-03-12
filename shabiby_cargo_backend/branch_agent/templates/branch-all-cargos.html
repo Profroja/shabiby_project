@@ -1,0 +1,460 @@
+{% extends 'branchagent_dashboard.html' %}
+
+{% block title %}All Cargos - 📦 Shabiby Cargo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+								<div class="page-block">
+									<div class="row align-items-center">
+										<div class="col-md-12">
+											<div class="page-header-title">
+												<h5 class="m-b-10">All Cargos</h5>
+											</div>
+											<ul class="breadcrumb">
+												<li class="breadcrumb-item"><a href="{% url 'branchagent_dashboard' %}"><i class="feather icon-home"></i></a></li>
+												<li class="breadcrumb-item"><a href="#!">Cargo Management</a></li>
+												<li class="breadcrumb-item"><a href="#!">All Cargos</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<div class="col-xl-12">
+									<div class="card">
+										<div class="card-header">
+											<h5>All Cargo Shipments</h5>
+											<span class="d-block m-t-5">Complete list of all cargo shipments for your branch</span>
+										</div>
+										<div class="card-body">
+											<!-- Filter Controls -->
+											<div class="row mb-3">
+												<div class="col-md-4">
+													<label for="searchCargo">Search Cargo/Sender/Receiver</label>
+													<input type="text" class="form-control" id="searchCargo" placeholder="Cargo number, sender or receiver...">
+												</div>
+												<div class="col-md-3">
+													<label for="startDate">Start Date</label>
+													<input type="date" class="form-control" id="startDate">
+												</div>
+												<div class="col-md-3">
+													<label for="endDate">End Date</label>
+													<input type="date" class="form-control" id="endDate">
+												</div>
+												<div class="col-md-2">
+													<label>&nbsp;</label>
+													<button class="btn btn-secondary btn-block" id="clearFilters">Clear Filters</button>
+												</div>
+											</div>
+										</div>
+										<div class="card-body table-border-style">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>#</th>
+															<th>Cargo/Parcel No.</th>
+															<th>Origin</th>
+															<th>Destination</th>
+															<th>Sender Name</th>
+															<th>Sender Mobile</th>
+															<th>Receiver Name</th>
+															<th>Receiver Mobile</th>
+															<th>Registered By</th>
+															<th>Register Date</th>
+															<th>Onboarded By</th>
+															<th>Onboarded Date</th>
+															<th>Onboarded Vehicle</th>
+															<th>Offboarded By</th>
+															<th>Offboarded Date</th>
+															<th>Offboarded Vehicle</th>
+															<th>Delivered By</th>
+															<th>Delivered Date</th>
+															<th>Status</th>
+															<th>Actions</th>
+														</tr>
+													</thead>
+													<tbody>
+														{% for cargo in cargos %}
+														<tr>
+															<td>{{ forloop.counter }}</td>
+															<td><strong>{{ cargo.cargo_number }}</strong></td>
+															<td>{{ cargo.origin_branch.location }}</td>
+															<td>{{ cargo.destination_branch.location }}</td>
+															<td>{{ cargo.sender.full_name }}</td>
+															<td>{{ cargo.sender.mobile_number }}</td>
+															<td>{{ cargo.receiver.full_name }}</td>
+															<td>{{ cargo.receiver.mobile_number }}</td>
+															<td>
+																{% if cargo.registered_by %}
+																	{{ cargo.registered_by.user.get_full_name }}
+																{% else %}
+																	<span class="text-muted">N/A</span>
+																{% endif %}
+															</td>
+															<td>{{ cargo.created_at|date:"d M Y H:i" }}</td>
+															<td>
+																{% if cargo.shipped_by %}
+																	{{ cargo.shipped_by.user.get_full_name }}
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.shipped_at %}
+																	{{ cargo.shipped_at|date:"d M Y H:i" }}
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.assigned_vehicle %}
+																	{{ cargo.assigned_vehicle.plate_number }}<br>
+																	<small class="text-muted">{{ cargo.assigned_vehicle.get_vehicle_type_display }}</small>
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.shipped_by and cargo.status == 'arrived' or cargo.status == 'delivered' %}
+																	{{ cargo.shipped_by.user.get_full_name }}
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.arrived_at %}
+																	{{ cargo.arrived_at|date:"d M Y H:i" }}
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.assigned_vehicle and cargo.status == 'arrived' or cargo.status == 'delivered' %}
+																	{{ cargo.assigned_vehicle.plate_number }}<br>
+																	<small class="text-muted">{{ cargo.assigned_vehicle.get_vehicle_type_display }}</small>
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.delivered_by_agent %}
+																	{{ cargo.delivered_by_agent.user.get_full_name }}
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.delivered_at %}
+																	{{ cargo.delivered_at|date:"d M Y H:i" }}
+																{% else %}
+																	<span class="text-muted">-</span>
+																{% endif %}
+															</td>
+															<td>
+																{% if cargo.status == 'registered' %}
+																	<span class="badge badge-warning">Registered</span>
+																{% elif cargo.status == 'shipped' %}
+																	<span class="badge badge-info">In Transit</span>
+																{% elif cargo.status == 'arrived' %}
+																	<span class="badge badge-success">Arrived</span>
+																{% elif cargo.status == 'delivered' %}
+																	<span class="badge badge-primary">Delivered</span>
+																{% endif %}
+															</td>
+															<td>
+																<button class="btn btn-sm btn-info view-cargo-btn" 
+																data-cargo-id="{{ cargo.id }}"
+																data-cargo-number="{{ cargo.cargo_number }}"
+																data-sender-name="{{ cargo.sender.full_name }}"
+																data-sender-phone="{{ cargo.sender.mobile_number }}"
+																data-receiver-name="{{ cargo.receiver.full_name }}"
+																data-receiver-phone="{{ cargo.receiver.mobile_number }}"
+																data-origin="{{ cargo.origin_branch.location }}"
+																data-destination="{{ cargo.destination_branch.location }}"
+																data-description="{{ cargo.cargo_description }}"
+																data-quantity="{{ cargo.quantity }}"
+																data-weight="{{ cargo.weight|default:'0' }}"
+																data-cargo-value="{{ cargo.cargo_value }}"
+																data-shipping-amount="{{ cargo.shipping_amount }}"
+																data-status="{{ cargo.get_status_display }}"
+																data-created-at="{{ cargo.created_at|date:'d M Y H:i' }}"
+																data-pickup-customer-name="{{ cargo.pickup_customer_name|default:'-' }}"
+																data-pickup-customer-mobile="{{ cargo.pickup_customer_mobile|default:'-' }}"
+																data-pickup-customer-location="{{ cargo.pickup_customer_location|default:'-' }}"
+																data-delivered-by="{{ cargo.delivered_by_agent.user.get_full_name|default:'-' }}"
+																data-delivered-at="{{ cargo.delivered_at|date:'d M Y H:i'|default:'-' }}"
+																title="View Details">
+																<i class="feather icon-eye"></i>
+															</button>
+															<a href="{% url 'thermal_receipt' cargo.id %}" target="_blank" class="btn btn-sm btn-danger" title="Download Receipt PDF">
+																<i class="fas fa-file-pdf"></i>
+															</a>
+															</td>
+														</tr>
+														{% empty %}
+														<tr>
+															<td colspan="20" class="text-center">No cargo shipments found</td>
+														</tr>
+														{% endfor %}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+</div>
+
+<!-- Cargo Details Modal -->
+<div class="modal fade" id="cargoDetailsModal" tabindex="-1" role="dialog" aria-labelledby="cargoDetailsModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-md" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #F37021; color: white; border-bottom: 2px dashed #333;">
+				<h5 class="modal-title" id="cargoDetailsModalLabel" style="font-weight: bold;">📦 CARGO/PARCEL DETAILS</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body" style="font-family: 'Courier New', monospace; background: #f9f9f9; padding: 20px;">
+				
+				<!-- Receipt Info Section -->
+				<div style="border-bottom: 2px dashed #333; padding-bottom: 12px; margin-bottom: 12px;">
+					<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+						<span style="font-weight: bold;">Cargo/Parcel No:</span>
+						<span id="modal-cargo-number" style="font-weight: bold; color: #F37021;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+						<span style="font-weight: bold;">Status:</span>
+						<span id="modal-status"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+						<span style="font-weight: bold;">Registered:</span>
+						<span id="modal-created-at"></span>
+					</div>
+				</div>
+
+				<!-- Sender Information -->
+				<div style="border-bottom: 1px dashed #333; padding-bottom: 10px; margin-bottom: 10px;">
+					<div style="font-weight: bold; text-decoration: underline; margin-bottom: 8px; font-size: 13px;">SENDER INFORMATION</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Name:</span>
+						<span id="modal-sender-name" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Phone:</span>
+						<span id="modal-sender-phone" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Branch:</span>
+						<span id="modal-origin" style="width: 65%; text-align: right;"></span>
+					</div>
+				</div>
+
+				<!-- Receiver Information -->
+				<div style="border-bottom: 1px dashed #333; padding-bottom: 10px; margin-bottom: 10px;">
+					<div style="font-weight: bold; text-decoration: underline; margin-bottom: 8px; font-size: 13px;">RECEIVER INFORMATION</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Name:</span>
+						<span id="modal-receiver-name" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Phone:</span>
+						<span id="modal-receiver-phone" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Branch:</span>
+						<span id="modal-destination" style="width: 65%; text-align: right;"></span>
+					</div>
+				</div>
+
+				<!-- Cargo Details -->
+				<div style="border-bottom: 1px dashed #333; padding-bottom: 10px; margin-bottom: 10px;">
+					<div style="font-weight: bold; text-decoration: underline; margin-bottom: 8px; font-size: 13px;">CARGO/PARCEL DETAILS</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Description:</span>
+						<span id="modal-description" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Quantity:</span>
+						<span id="modal-quantity" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Weight:</span>
+						<span id="modal-weight" style="width: 65%; text-align: right;"></span>
+					</div>
+				</div>
+
+				<!-- Payment Information -->
+				<div style="border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 10px;">
+					<div style="font-weight: bold; text-decoration: underline; margin-bottom: 8px; font-size: 13px;">PAYMENT INFORMATION</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Value:</span>
+						<span id="modal-cargo-value" style="width: 65%; text-align: right; font-weight: bold; color: #28a745;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Shipping Fee:</span>
+						<span id="modal-shipping-amount" style="width: 65%; text-align: right; font-weight: bold; color: #F37021;"></span>
+					</div>
+				</div>
+
+				<!-- Customer Pickup Details (Only shown if delivered) -->
+				<div id="pickup-details-section" style="border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 10px; display: none;">
+					<div style="font-weight: bold; text-decoration: underline; margin-bottom: 8px; font-size: 13px; color: #28a745;">CUSTOMER PICKUP DETAILS</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Picked By:</span>
+						<span id="modal-pickup-customer-name" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Mobile:</span>
+						<span id="modal-pickup-customer-mobile" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Location:</span>
+						<span id="modal-pickup-customer-location" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Delivered By:</span>
+						<span id="modal-delivered-by" style="width: 65%; text-align: right;"></span>
+					</div>
+					<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+						<span style="font-weight: bold; width: 35%;">Delivered At:</span>
+						<span id="modal-delivered-at" style="width: 65%; text-align: right;"></span>
+					</div>
+				</div>
+
+				<!-- Footer -->
+				<div style="text-align: center; font-size: 11px; color: #666;">
+					<div style="font-weight: bold; margin-bottom: 3px;">SHABIBY CARGO</div>
+					<div>Cargo & Parcel Delivery Services</div>
+					<div>Tel: +255 767 463 987</div>
+				</div>
+
+			</div>
+			<div class="modal-footer" style="border-top: 2px dashed #333;">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+	// Handle view cargo button click
+	$('.view-cargo-btn').on('click', function() {
+		const btn = $(this);
+		
+		// Get data from button attributes
+		const cargoNumber = btn.data('cargo-number');
+		const senderName = btn.data('sender-name');
+		const senderPhone = btn.data('sender-phone');
+		const receiverName = btn.data('receiver-name');
+		const receiverPhone = btn.data('receiver-phone');
+		const origin = btn.data('origin');
+		const destination = btn.data('destination');
+		const description = btn.data('description');
+		const quantity = btn.data('quantity');
+		const weight = btn.data('weight');
+		const cargoValue = btn.data('cargo-value');
+		const shippingAmount = btn.data('shipping-amount');
+		const status = btn.data('status');
+		const createdAt = btn.data('created-at');
+		const pickupCustomerName = btn.data('pickup-customer-name');
+		const pickupCustomerMobile = btn.data('pickup-customer-mobile');
+		const pickupCustomerLocation = btn.data('pickup-customer-location');
+		const deliveredBy = btn.data('delivered-by');
+		const deliveredAt = btn.data('delivered-at');
+		
+		// Populate modal with cargo details
+		$('#modal-cargo-number').text(cargoNumber);
+		$('#modal-status').html('<span class="badge badge-info">' + status + '</span>');
+		$('#modal-created-at').text(createdAt);
+		$('#modal-description').text(description);
+		$('#modal-quantity').text(quantity);
+		$('#modal-weight').text(weight + ' kg');
+		$('#modal-sender-name').text(senderName);
+		$('#modal-sender-phone').text(senderPhone);
+		$('#modal-origin').text(origin);
+		$('#modal-receiver-name').text(receiverName);
+		$('#modal-receiver-phone').text(receiverPhone);
+		$('#modal-destination').text(destination);
+		$('#modal-cargo-value').text('TZS ' + parseFloat(cargoValue).toLocaleString());
+		$('#modal-shipping-amount').text('TZS ' + parseFloat(shippingAmount).toLocaleString());
+		
+		// Show/hide customer pickup details section based on delivery status
+		if (pickupCustomerName && pickupCustomerName !== '-') {
+			$('#modal-pickup-customer-name').text(pickupCustomerName);
+			$('#modal-pickup-customer-mobile').text(pickupCustomerMobile);
+			$('#modal-pickup-customer-location').text(pickupCustomerLocation);
+			$('#modal-delivered-by').text(deliveredBy);
+			$('#modal-delivered-at').text(deliveredAt);
+			$('#pickup-details-section').show();
+		} else {
+			$('#pickup-details-section').hide();
+		}
+		
+		// Show modal
+		$('#cargoDetailsModal').modal('show');
+	});
+
+	// Filter and Search Functionality
+	function filterTable() {
+		const searchValue = $('#searchCargo').val().toLowerCase();
+		const startDate = $('#startDate').val();
+		const endDate = $('#endDate').val();
+
+		$('table tbody tr').each(function() {
+			const row = $(this);
+			
+			// Skip empty row
+			if (row.find('td').length === 1) {
+				return;
+			}
+
+			const cargoNumber = row.find('td:eq(1)').text().toLowerCase();
+			const registerDate = row.find('td:eq(11)').text();
+			
+			// Get sender and receiver names from button data attributes
+			const btn = row.find('.view-cargo-btn');
+			const senderName = btn.data('sender-name') ? btn.data('sender-name').toLowerCase() : '';
+			const receiverName = btn.data('receiver-name') ? btn.data('receiver-name').toLowerCase() : '';
+
+			let showRow = true;
+
+			// Search filter - search in cargo number, sender name, and receiver name
+			if (searchValue && !cargoNumber.includes(searchValue) && !senderName.includes(searchValue) && !receiverName.includes(searchValue)) {
+				showRow = false;
+			}
+
+			// Date range filter
+			if (startDate || endDate) {
+				const rowDate = new Date(registerDate);
+				if (startDate && rowDate < new Date(startDate)) {
+					showRow = false;
+				}
+				if (endDate && rowDate > new Date(endDate + ' 23:59:59')) {
+					showRow = false;
+				}
+			}
+
+			row.toggle(showRow);
+		});
+	}
+
+	// Attach event listeners
+	$('#searchCargo').on('keyup', filterTable);
+	$('#startDate').on('change', filterTable);
+	$('#endDate').on('change', filterTable);
+
+	// Clear filters
+	$('#clearFilters').on('click', function() {
+		$('#searchCargo').val('');
+		$('#startDate').val('');
+		$('#endDate').val('');
+		filterTable();
+	});
+});
+</script>
+{% endblock %}

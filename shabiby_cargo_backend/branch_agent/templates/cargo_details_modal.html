@@ -1,0 +1,119 @@
+<!-- Cargo Details Modal -->
+<div class="modal fade" id="cargoDetailsModal" tabindex="-1" role="dialog" aria-labelledby="cargoDetailsModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #F37021; color: white;">
+				<h5 class="modal-title" id="cargoDetailsModalLabel">📦 Cargo Details</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-md-6">
+						<h6 class="text-primary mb-3"><i class="feather icon-package"></i> Cargo Information</h6>
+						<table class="table table-sm">
+							<tr>
+								<td><strong>Cargo Number:</strong></td>
+								<td id="detail_cargo_number"></td>
+							</tr>
+							<tr>
+								<td><strong>Tracking Number:</strong></td>
+								<td id="detail_tracking_number"></td>
+							</tr>
+							<tr>
+								<td><strong>Description:</strong></td>
+								<td id="detail_description"></td>
+							</tr>
+							<tr>
+								<td><strong>Quantity:</strong></td>
+								<td id="detail_quantity"></td>
+							</tr>
+							<tr>
+								<td><strong>Weight:</strong></td>
+								<td id="detail_weight"></td>
+							</tr>
+							<tr>
+								<td><strong>Value:</strong></td>
+								<td id="detail_value"></td>
+							</tr>
+							<tr>
+								<td><strong>Shipping Fee:</strong></td>
+								<td id="detail_shipping_fee"></td>
+							</tr>
+							<tr>
+								<td><strong>Status:</strong></td>
+								<td id="detail_status"></td>
+							</tr>
+						</table>
+					</div>
+					<div class="col-md-6">
+						<h6 class="text-success mb-3"><i class="feather icon-users"></i> Sender & Receiver</h6>
+						<table class="table table-sm">
+							<tr>
+								<td><strong>Sender:</strong></td>
+								<td id="detail_sender"></td>
+							</tr>
+							<tr>
+								<td><strong>Receiver:</strong></td>
+								<td id="detail_receiver"></td>
+							</tr>
+						</table>
+						
+						<h6 class="text-warning mb-3 mt-4"><i class="feather icon-map-pin"></i> Route</h6>
+						<table class="table table-sm">
+							<tr>
+								<td><strong>Origin:</strong></td>
+								<td id="detail_origin"></td>
+							</tr>
+							<tr>
+								<td><strong>Destination:</strong></td>
+								<td id="detail_destination"></td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+$(document).ready(function() {
+	// View cargo details
+	$('.view-cargo-details-btn').on('click', function() {
+		const cargoNumber = $(this).data('cargo-number');
+		const trackingNumber = $(this).data('tracking-number');
+		const sender = $(this).data('sender');
+		const receiver = $(this).data('receiver');
+		const origin = $(this).data('origin');
+		const destination = $(this).data('destination');
+		const description = $(this).data('description');
+		const quantity = $(this).data('quantity');
+		const weight = $(this).data('weight');
+		const value = $(this).data('value');
+		const shippingFee = $(this).data('shipping-fee');
+		const status = $(this).data('status');
+		
+		// Populate modal
+		$('#detail_cargo_number').text(cargoNumber);
+		$('#detail_tracking_number').text(trackingNumber);
+		$('#detail_sender').text(sender);
+		$('#detail_receiver').text(receiver);
+		$('#detail_origin').text(origin);
+		$('#detail_destination').text(destination);
+		$('#detail_description').text(description);
+		$('#detail_quantity').text(quantity + ' pcs');
+		$('#detail_weight').text(weight + ' kg');
+		$('#detail_value').text('TZS ' + parseFloat(value).toLocaleString());
+		$('#detail_shipping_fee').text('TZS ' + parseFloat(shippingFee).toLocaleString());
+		$('#detail_status').html('<span class="badge badge-primary">' + status + '</span>');
+		
+		// Show modal
+		$('#cargoDetailsModal').modal('show');
+	});
+});
+</script>

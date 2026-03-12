@@ -1,0 +1,78 @@
+{% extends 'branchagent_dashboard.html' %}
+
+{% block title %}Arrived Cargos - 📦 Shabiby Cargo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+								<div class="page-block">
+									<div class="row align-items-center">
+										<div class="col-md-12">
+											<div class="page-header-title">
+												<h5 class="m-b-10">Arrived Cargos</h5>
+											</div>
+											<ul class="breadcrumb">
+												<li class="breadcrumb-item"><a href="{% url 'branchagent_dashboard' %}"><i class="feather icon-home"></i></a></li>
+												<li class="breadcrumb-item"><a href="#!">Cargo Management</a></li>
+												<li class="breadcrumb-item"><a href="#!">Arrived</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<div class="col-xl-12">
+									<div class="card">
+										<div class="card-header">
+											<h5>Cargos Arrived at Branch</h5>
+											<span class="d-block m-t-5">Shipments ready for customer pickup</span>
+										</div>
+										<div class="card-body table-border-style">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>#</th>
+															<th>Tracking ID</th>
+															<th>Receiver</th>
+															<th>Contact</th>
+															<th>Origin</th>
+															<th>Weight (kg)</th>
+															<th>Amount (TZS)</th>
+															<th>Arrival Date</th>
+															<th>Actions</th>
+														</tr>
+													</thead>
+													<tbody>
+														{% for cargo in cargos %}
+														<tr>
+															<td>{{ forloop.counter }}</td>
+															<td><strong>{{ cargo.tracking_number }}</strong></td>
+															<td>{{ cargo.receiver.full_names }}</td>
+															<td>{{ cargo.receiver.mobile_number }}</td>
+															<td>{{ cargo.origin_branch.location }}</td>
+															<td>{{ cargo.weight }}</td>
+															<td>{{ cargo.total_amount|floatformat:0 }}</td>
+															<td>{{ cargo.updated_at|date:"d M Y H:i" }}</td>
+															<td>
+																<button class="btn btn-sm btn-primary" title="Mark as Delivered">
+																	<i class="feather icon-check-circle"></i> Deliver
+																</button>
+																<button class="btn btn-sm btn-info" title="Notify Customer">
+																	<i class="feather icon-phone"></i>
+																</button>
+															</td>
+														</tr>
+														{% empty %}
+														<tr>
+															<td colspan="9" class="text-center">No arrived cargos</td>
+														</tr>
+														{% endfor %}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+</div>
+{% endblock %}

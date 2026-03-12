@@ -1,0 +1,280 @@
+{% extends 'branchagent_dashboard.html' %}
+{% load static %}
+
+{% block title %}Registered Cargos - 📦 Shabiby Cargo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+								<div class="page-block">
+									<div class="row align-items-center">
+										<div class="col-md-12">
+											<div class="page-header-title">
+												<h5 class="m-b-10">Registered Cargos</h5>
+											</div>
+											<ul class="breadcrumb">
+												<li class="breadcrumb-item"><a href="{% url 'branchagent_dashboard' %}"><i class="feather icon-home"></i></a></li>
+												<li class="breadcrumb-item"><a href="#!">Cargo Management</a></li>
+												<li class="breadcrumb-item"><a href="#!">Registered Cargos</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<div class="col-xl-12">
+									<div class="card">
+										<div class="card-header">
+											<h5>Registered Cargo Shipments</h5>
+											<span class="d-block m-t-5">Cargos awaiting processing and shipment</span>
+											<div class="card-header-right">
+												<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#registerCargoModal">
+													<i class="feather icon-plus"></i> Register New Cargo
+												</button>
+											</div>
+										</div>
+										<div class="card-body table-border-style">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>#</th>
+															<th>Cargo/Parcel No.</th>
+															<th>Receipt No.</th>
+															<th>Sender</th>
+															<th>Receiver</th>
+															<th>Destination</th>
+															<th>Registered Date</th>
+															<th>Actions</th>
+														</tr>
+													</thead>
+													<tbody>
+														{% for cargo in cargos %}
+														<tr>
+															<td>{{ forloop.counter }}</td>
+															<td><strong>{{ cargo.cargo_number }}</strong></td>
+															<td><strong>{{ cargo.receipt_number }}</strong></td>
+															<td>{{ cargo.sender.full_name }}</td>
+															<td>{{ cargo.receiver.full_name }}</td>
+															<td>{{ cargo.destination_branch.location }}</td>
+															<td>{{ cargo.created_at|date:"d M Y" }}</td>
+															<td>
+																<span class="badge badge-warning">Waiting for Onboard</span>
+																<a href="{% url 'thermal_receipt' cargo.id %}" class="btn btn-sm btn-success ml-2" title="Print Receipt" target="_blank">
+																	<i class="feather icon-printer"></i>
+																</a>
+																<a href="#" class="btn btn-sm btn-info ml-2" title="View Details">
+																	<i class="feather icon-eye"></i>
+																</a>
+															</td>
+														</tr>
+														{% empty %}
+														<tr>
+															<td colspan="8" class="text-center">No registered cargos found</td>
+														</tr>
+														{% endfor %}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+<!-- Register Cargo Modal -->
+	<div class="modal fade" id="registerCargoModal" tabindex="-1" role="dialog" aria-labelledby="registerCargoModalLabel" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="registerCargoModalLabel">Register New Cargo/Parcel</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<form id="registerCargoForm" method="POST">
+					{% csrf_token %}
+					<div class="modal-body">
+						<!-- Sender Information -->
+						<h6 class="text-primary mb-2"><i class="feather icon-user"></i> Sender</h6>
+						<div class="form-group">
+							<label for="sender_name">Full Name <span class="text-danger">*</span></label>
+							<input type="text" class="form-control form-control-sm" id="sender_name" name="sender_name" required>
+						</div>
+						<div class="form-group">
+							<label for="sender_phone">Mobile Number <span class="text-danger">*</span></label>
+							<input type="tel" class="form-control form-control-sm" id="sender_phone" name="sender_phone" required>
+						</div>
+						<div class="form-group">
+							<label for="sender_branch">Branch Center <span class="text-danger">*</span></label>
+							<select class="form-control form-control-sm" id="sender_branch" name="sender_branch" required>
+								<option value="">Select Branch</option>
+								{% for branch in branches %}
+								<option value="{{ branch.id }}">{{ branch.location }}</option>
+								{% endfor %}
+							</select>
+						</div>
+
+						<hr>
+
+						<!-- Receiver Information -->
+						<h6 class="text-success mb-2"><i class="feather icon-user-check"></i> Receiver</h6>
+						<div class="form-group">
+							<label for="receiver_name">Full Name <span class="text-danger">*</span></label>
+							<input type="text" class="form-control form-control-sm" id="receiver_name" name="receiver_name" required>
+						</div>
+						<div class="form-group">
+							<label for="receiver_phone">Mobile Number <span class="text-danger">*</span></label>
+							<input type="tel" class="form-control form-control-sm" id="receiver_phone" name="receiver_phone" required>
+						</div>
+						<div class="form-group">
+							<label for="receiver_branch">Branch Center <span class="text-danger">*</span></label>
+							<select class="form-control form-control-sm" id="receiver_branch" name="receiver_branch" required>
+								<option value="">Select Branch</option>
+								{% for branch in branches %}
+								<option value="{{ branch.id }}">{{ branch.location }}</option>
+								{% endfor %}
+							</select>
+						</div>
+
+						<hr>
+
+						<!-- Cargo Details -->
+						<h6 class="text-warning mb-2"><i class="feather icon-package"></i> Cargo Details</h6>
+						<div class="form-group">
+							<label for="cargo_description">Description <span class="text-danger">*</span></label>
+							<textarea class="form-control form-control-sm" id="cargo_description" name="cargo_description" rows="2" required></textarea>
+						</div>
+						<div class="form-group">
+							<label for="quantity">Quantity <span class="text-danger">*</span></label>
+							<input type="number" class="form-control form-control-sm" id="quantity" name="quantity" min="1" required>
+						</div>
+						<div class="form-group">
+							<label for="weight">Weight (kg) <span class="text-danger">*</span></label>
+							<input type="number" class="form-control form-control-sm" id="weight" name="weight" min="0.1" step="0.1" required>
+						</div>
+						<div class="form-group">
+							<label for="cargo_value">Value (TZS) <span class="text-danger">*</span></label>
+							<input type="number" class="form-control form-control-sm" id="cargo_value" name="cargo_value" min="0" step="0.01" required>
+						</div>
+						<div class="form-group">
+							<label for="shipping_amount">Shipping Amount (TZS) <span class="text-danger">*</span></label>
+							<input type="number" class="form-control form-control-sm" id="shipping_amount" name="shipping_amount" min="0" step="0.01" required readonly style="background-color: #f0f0f0;">
+							<small class="form-text text-muted">Auto-calculated based on cargo value</small>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+						<button type="submit" class="btn btn-primary">
+							<i class="feather icon-save"></i> Register Cargo
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<script src="{% static 'assets/js/vendor-all.min.js' %}"></script>
+	<script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+	<script src="{% static 'assets/js/pcoded.min.js' %}"></script>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+	<script>
+		// Auto-calculate shipping amount based on cargo value
+		function calculateShippingAmount() {
+			const cargoValue = document.getElementById('cargo_value').value;
+			
+			if (cargoValue) {
+				// Fetch shipping fee calculation
+				fetch(`/api/calculate-shipping-fee/?cargo_value=${cargoValue}`)
+					.then(response => response.json())
+					.then(data => {
+						if (data.success) {
+							document.getElementById('shipping_amount').value = data.shipping_amount.toFixed(2);
+						} else {
+							document.getElementById('shipping_amount').value = '';
+							Swal.fire({
+								icon: 'warning',
+								title: 'Shipping Fee Not Found',
+								text: data.message || 'No shipping fee configuration found for this cargo value',
+								timer: 3000,
+								showConfirmButton: false
+							});
+						}
+					})
+					.catch(error => {
+						console.error('Error calculating shipping fee:', error);
+					});
+			}
+		}
+		
+		// Add event listener to trigger calculation when cargo value changes
+		document.getElementById('cargo_value').addEventListener('input', calculateShippingAmount);
+		
+		// Handle register cargo form submission
+		document.getElementById('registerCargoForm').addEventListener('submit', function(e) {
+			e.preventDefault();
+			
+			const formData = new FormData(this);
+			
+			// Show loading
+			Swal.fire({
+				title: 'Processing...',
+				text: 'Registering cargo, please wait',
+				allowOutsideClick: false,
+				didOpen: () => {
+					Swal.showLoading();
+				}
+			});
+			
+			// Submit form via AJAX
+			fetch('{% url "register_cargo" %}', {
+				method: 'POST',
+				body: formData,
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				}
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.success) {
+					Swal.fire({
+						icon: 'success',
+						title: 'Cargo Registered Successfully!',
+						html: `
+							<p>${data.message}</p>
+							<div style="margin-top: 15px;">
+								<a href="/branch-agent/thermal-receipt/${data.cargo_id}/" 
+								   target="_blank" 
+								   class="btn btn-success btn-sm" 
+								   style="padding: 8px 20px; text-decoration: none; color: white; background: #28a745; border-radius: 5px; display: inline-block; margin-top: 10px;">
+									<i class="feather icon-printer"></i> Print Receipt
+								</a>
+							</div>
+						`,
+						showConfirmButton: true,
+						confirmButtonText: 'Close'
+					}).then(() => {
+						// Close modal and reload page
+						$('#registerCargoModal').modal('hide');
+						location.reload();
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error!',
+						text: data.message || 'Failed to register cargo',
+						confirmButtonText: 'OK'
+					});
+				}
+			})
+			.catch(error => {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: 'An error occurred while registering cargo',
+					confirmButtonText: 'OK'
+				});
+			});
+		});
+	</script>
+{% endblock %}

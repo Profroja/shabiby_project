@@ -1,0 +1,378 @@
+{% extends 'admin_dashboard.html' %}
+{% load humanize %}
+
+{% block title %}Shipping Fee Configs - 📦 Shabiby Cargo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+	<div class="page-block">
+		<div class="row align-items-center">
+			<div class="col-md-12">
+				<div class="page-header-title">
+					<h5 class="m-b-10">Shipping Fee Configurations</h5>
+				</div>
+				<ul class="breadcrumb">
+					<li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}"><i class="feather icon-home"></i></a></li>
+					<li class="breadcrumb-item"><a href="#!">Settings</a></li>
+					<li class="breadcrumb-item"><a href="#!">Shipping Fee Configs</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="row">
+	<div class="col-xl-12">
+		<div class="card">
+			<div class="card-header">
+				<h5>Shipping Fee Configuration</h5>
+				<span class="d-block m-t-5">Configure shipping fees based on cargo/parcel value ranges</span>
+				<button class="btn btn-primary btn-sm float-right" style="margin-top: -35px;" data-toggle="modal" data-target="#addConfigModal">
+					<i class="feather icon-plus"></i> Add New Configuration
+				</button>
+			</div>
+			<div class="card-body table-border-style">
+				<div class="table-responsive">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Min Cargo Value</th>
+								<th>Max Cargo Value</th>
+								<th>Shipping Fee</th>
+								<th>Status</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for config in configs %}
+							<tr>
+								<td>{{ forloop.counter }}</td>
+								<td><strong>TZS {{ config.min_cargo_value|intcomma }}</strong></td>
+								<td><strong>TZS {{ config.max_cargo_value|intcomma }}</strong></td>
+								<td><span style="color: #F37021; font-weight: bold;">TZS {{ config.shipping_fee|intcomma }}</span></td>
+								<td>
+									{% if config.is_active %}
+										<span class="badge badge-success">Active</span>
+									{% else %}
+										<span class="badge badge-secondary">Inactive</span>
+									{% endif %}
+								</td>
+								<td>
+									<button class="btn btn-sm btn-warning edit-config-btn" 
+										data-config-id="{{ config.id }}"
+										data-min-value="{{ config.min_cargo_value }}"
+										data-max-value="{{ config.max_cargo_value }}"
+										data-shipping-fee="{{ config.shipping_fee }}"
+										title="Edit">
+										<i class="feather icon-edit"></i>
+									</button>
+									<button class="btn btn-sm btn-danger delete-config-btn" 
+										data-config-id="{{ config.id }}"
+										title="Delete">
+										<i class="feather icon-trash-2"></i>
+									</button>
+								</td>
+							</tr>
+							{% empty %}
+							<tr>
+								<td colspan="6" class="text-center">No shipping fee configurations found. Click "Add New Configuration" to create one.</td>
+							</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Add Configuration Modal -->
+<div class="modal fade" id="addConfigModal" tabindex="-1" role="dialog" aria-labelledby="addConfigModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #F37021; color: white;">
+				<h5 class="modal-title" id="addConfigModalLabel">💰 Add Shipping Fee Configuration</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<form id="addConfigForm">
+					{% csrf_token %}
+					<div class="form-group">
+						<label for="add_min_cargo_value">Minimum Cargo Value (TZS) <span class="text-danger">*</span></label>
+						<input type="number" class="form-control" id="add_min_cargo_value" name="min_cargo_value" required min="0" step="0.01" placeholder="e.g., 20000">
+					</div>
+					<div class="form-group">
+						<label for="add_max_cargo_value">Maximum Cargo Value (TZS) <span class="text-danger">*</span></label>
+						<input type="number" class="form-control" id="add_max_cargo_value" name="max_cargo_value" required min="0" step="0.01" placeholder="e.g., 100000">
+					</div>
+					<div class="form-group">
+						<label for="add_shipping_fee">Shipping Fee (TZS) <span class="text-danger">*</span></label>
+						<input type="number" class="form-control" id="add_shipping_fee" name="shipping_fee" required min="0" step="0.01" placeholder="e.g., 15000">
+					</div>
+					<div class="alert alert-info">
+						<i class="feather icon-info"></i> <strong>Note:</strong> The cargo value range should not overlap with existing configurations.
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-primary" id="saveConfigBtn">
+					<i class="feather icon-save"></i> Save Configuration
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Edit Configuration Modal -->
+<div class="modal fade" id="editConfigModal" tabindex="-1" role="dialog" aria-labelledby="editConfigModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #F37021; color: white;">
+				<h5 class="modal-title" id="editConfigModalLabel">✏️ Edit Shipping Fee Configuration</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<form id="editConfigForm">
+					<input type="hidden" id="edit_config_id" name="config_id">
+					<div class="form-group">
+						<label for="edit_min_cargo_value">Minimum Cargo Value (TZS) <span class="text-danger">*</span></label>
+						<input type="number" class="form-control" id="edit_min_cargo_value" name="min_cargo_value" required min="0" step="0.01">
+					</div>
+					<div class="form-group">
+						<label for="edit_max_cargo_value">Maximum Cargo Value (TZS) <span class="text-danger">*</span></label>
+						<input type="number" class="form-control" id="edit_max_cargo_value" name="max_cargo_value" required min="0" step="0.01">
+					</div>
+					<div class="form-group">
+						<label for="edit_shipping_fee">Shipping Fee (TZS) <span class="text-danger">*</span></label>
+						<input type="number" class="form-control" id="edit_shipping_fee" name="shipping_fee" required min="0" step="0.01">
+					</div>
+					<div class="alert alert-info">
+						<i class="feather icon-info"></i> <strong>Note:</strong> The cargo value range should not overlap with existing configurations.
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-warning" id="updateConfigBtn">
+					<i class="feather icon-save"></i> Update Configuration
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+	
+	// Get CSRF token from form
+	const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+	
+	// Save new configuration
+	$('#saveConfigBtn').on('click', function() {
+		const minValue = $('#add_min_cargo_value').val();
+		const maxValue = $('#add_max_cargo_value').val();
+		const shippingFee = $('#add_shipping_fee').val();
+		
+		// Validate inputs
+		if (!minValue || !maxValue || !shippingFee) {
+			Swal.fire({
+				icon: 'error',
+				title: 'Validation Error',
+				text: 'Please fill in all required fields'
+			});
+			return;
+		}
+		
+		if (parseFloat(minValue) >= parseFloat(maxValue)) {
+			Swal.fire({
+				icon: 'error',
+				title: 'Validation Error',
+				text: 'Minimum cargo value must be less than maximum cargo value'
+			});
+			return;
+		}
+		
+		// Send AJAX request
+		$.ajax({
+			url: '/api/shipping-fee-configs/create/',
+			method: 'POST',
+			headers: {'X-CSRFToken': csrftoken},
+			contentType: 'application/json',
+			data: JSON.stringify({
+				min_cargo_value: minValue,
+				max_cargo_value: maxValue,
+				shipping_fee: shippingFee
+			}),
+			success: function(response) {
+				if (response.success) {
+					Swal.fire({
+						icon: 'success',
+						title: 'Success!',
+						text: response.message,
+						timer: 2000,
+						showConfirmButton: false
+					}).then(() => {
+						location.reload();
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: response.message
+					});
+				}
+			},
+			error: function(xhr) {
+				const response = JSON.parse(xhr.responseText);
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: response.message || 'Failed to create configuration'
+				});
+			}
+		});
+	});
+	
+	// Edit configuration
+	$('.edit-config-btn').on('click', function() {
+		const configId = $(this).data('config-id');
+		const minValue = $(this).data('min-value');
+		const maxValue = $(this).data('max-value');
+		const shippingFee = $(this).data('shipping-fee');
+		
+		$('#edit_config_id').val(configId);
+		$('#edit_min_cargo_value').val(minValue);
+		$('#edit_max_cargo_value').val(maxValue);
+		$('#edit_shipping_fee').val(shippingFee);
+		
+		$('#editConfigModal').modal('show');
+	});
+	
+	// Update configuration
+	$('#updateConfigBtn').on('click', function() {
+		const configId = $('#edit_config_id').val();
+		const minValue = $('#edit_min_cargo_value').val();
+		const maxValue = $('#edit_max_cargo_value').val();
+		const shippingFee = $('#edit_shipping_fee').val();
+		
+		// Validate inputs
+		if (!minValue || !maxValue || !shippingFee) {
+			Swal.fire({
+				icon: 'error',
+				title: 'Validation Error',
+				text: 'Please fill in all required fields'
+			});
+			return;
+		}
+		
+		if (parseFloat(minValue) >= parseFloat(maxValue)) {
+			Swal.fire({
+				icon: 'error',
+				title: 'Validation Error',
+				text: 'Minimum cargo value must be less than maximum cargo value'
+			});
+			return;
+		}
+		
+		// Send AJAX request
+		$.ajax({
+			url: '/api/shipping-fee-configs/update/' + configId + '/',
+			method: 'PUT',
+			headers: {'X-CSRFToken': csrftoken},
+			contentType: 'application/json',
+			data: JSON.stringify({
+				min_cargo_value: minValue,
+				max_cargo_value: maxValue,
+				shipping_fee: shippingFee
+			}),
+			success: function(response) {
+				if (response.success) {
+					Swal.fire({
+						icon: 'success',
+						title: 'Success!',
+						text: response.message,
+						timer: 2000,
+						showConfirmButton: false
+					}).then(() => {
+						location.reload();
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: response.message
+					});
+				}
+			},
+			error: function(xhr) {
+				const response = JSON.parse(xhr.responseText);
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: response.message || 'Failed to update configuration'
+				});
+			}
+		});
+	});
+	
+	// Delete configuration
+	$('.delete-config-btn').on('click', function() {
+		const configId = $(this).data('config-id');
+		
+		Swal.fire({
+			title: 'Are you sure?',
+			text: "You won't be able to revert this!",
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#d33',
+			cancelButtonColor: '#3085d6',
+			confirmButtonText: 'Yes, delete it!'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				$.ajax({
+					url: '/api/shipping-fee-configs/delete/' + configId + '/',
+					method: 'DELETE',
+					headers: {'X-CSRFToken': csrftoken},
+					success: function(response) {
+						if (response.success) {
+							Swal.fire({
+								icon: 'success',
+								title: 'Deleted!',
+								text: response.message,
+								timer: 2000,
+								showConfirmButton: false
+							}).then(() => {
+								location.reload();
+							});
+						} else {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message
+							});
+						}
+					},
+					error: function(xhr) {
+						const response = JSON.parse(xhr.responseText);
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: response.message || 'Failed to delete configuration'
+						});
+					}
+				});
+			}
+		});
+	});
+	
+});
+</script>
+{% endblock %}

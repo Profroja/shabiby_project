@@ -1,0 +1,347 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+	<title>{% block title %}📦 Shabiby Cargo{% endblock %}</title>
+	<!-- HTML5 Shim and Respond.js IE11 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 11]>
+		<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+		<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+	<!-- Meta -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	
+	<meta name="description" content="Flash Able Bootstrap admin template made using Bootstrap 4 and it has huge amount of ready made feature, UI components, pages which completely fulfills any dashboard needs." />
+	<meta name="keywords"
+		content="admin templates, bootstrap admin templates, bootstrap 4, dashboard, dashboard templets, sass admin templets, html admin templates, responsive, bootstrap admin templates free download,premium bootstrap admin templates, Flash Able, Flash Able bootstrap admin template">
+	<meta name="author" content="Codedthemes" />
+
+
+	<link rel="stylesheet" href="{% static 'assets/fonts/fontawesome/css/fontawesome-all.min.css' %}">
+	<!-- animation css -->
+	<link rel="stylesheet" href="{% static 'assets/plugins/animation/css/animate.min.css' %}">
+
+	<!-- vendor css -->
+	<link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+	
+	<style>
+		/* Hide entire topbar section on mobile devices */
+		@media (max-width: 768px) {
+			.navbar-collapse {
+				display: none !important;
+			}
+			#mobile-header {
+				display: none !important;
+			}
+		}
+		
+		/* Hide Upgrade to Pro floating button */
+		.fixed-button {
+			display: none !important;
+		}
+		
+		/* Keep sidebar branding white on mobile */
+		.b-brand span {
+			color: #fff !important;
+		}
+	</style>
+	
+	<!-- SweetAlert2 CSS -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+	
+	{% block extra_css %}{% endblock %}
+</head>
+
+<body class="">
+	<!-- [ Pre-loader ] start -->
+	<div class="loader-bg">
+		<div class="loader-track">
+			<div class="loader-fill"></div>
+		</div>
+	</div>
+	<!-- [ Pre-loader ] End -->
+
+	<!-- [ navigation menu ] start -->
+	<nav class="pcoded-navbar menupos-fixed menu-light brand-blue ">
+		<div class="navbar-wrapper ">
+			<div class="navbar-brand header-logo">
+				<a href="index.html" class="b-brand" style="display: flex; align-items: center; gap: 8px; padding: 10px;">
+					<span style="font-size: 20px; font-weight: 700; color: #fff;">📦 Shabiby Cargo</span>
+				</a>
+				<a class="mobile-menu" id="mobile-collapse" href="#!"><span></span></a>
+			</div>
+			<div class="navbar-content scroll-div">
+				<ul class="nav pcoded-inner-navbar">
+					<li class="nav-item pcoded-menu-caption">
+					</li>
+					<li class="nav-item">
+						<a href="{% url 'conductor_dashboard' %}" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span class="pcoded-mtext">Dashboard</span></a>
+					</li>
+					
+					<li class="nav-item pcoded-hasmenu">
+						<a href="#!" class="nav-link"><span class="pcoded-micon"><i class="feather icon-package"></i></span><span class="pcoded-mtext">Cargo</span></a>
+						<ul class="pcoded-submenu">
+							<li><a href="{% url 'conductor_onboarded_cargos' %}">On boarded</a></li>
+							<li><a href="{% url 'conductor_offboarded_cargos' %}">Off boarded</a></li>
+						</ul>
+					</li>
+					
+					<li class="nav-item">
+						<a href="{% url 'logout' %}" class="nav-link"><span class="pcoded-micon"><i class="feather icon-log-out"></i></span><span class="pcoded-mtext">Logout</span></a>
+					</li>
+				</ul>
+			
+			</div>
+		</div>
+	</nav>
+	<!-- [ navigation menu ] end -->
+
+	<!-- [ Header ] start -->
+	<header class="navbar pcoded-header navbar-expand-lg navbar-light headerpos-fixed">
+		<div class="m-header">
+			<a class="mobile-menu" id="mobile-collapse1" href="#!"><span></span></a>
+			<a href="index.html" class="b-brand" style="display: flex; align-items: center; gap: 6px;">
+				<span style="font-size: 18px; font-weight: 700; color: #333;">📦 Shabiby Cargo</span>
+			</a>
+		</div>
+		<a class="mobile-menu" id="mobile-header" href="#!">
+			<i class="feather icon-more-horizontal"></i>
+		</a>
+		<div class="collapse navbar-collapse">
+			<a href="#!" class="mob-toggler"></a>
+			<ul class="navbar-nav mr-auto">
+				<!-- Search bar removed for branch agents -->
+			</ul>
+			<ul class="navbar-nav ml-auto">
+				<li>
+					<span class="badge badge-info" style="font-size: 12px; padding: 6px 14px; margin-right: 10px;">
+						Conductor{% if request.user.agent_profile.office %} - {{ request.user.agent_profile.office.location }}{% endif %}
+					</span>
+				</li>
+				<li>
+					<div class="dropdown drp-user">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+							<i class="icon feather icon-settings"></i>
+						</a>
+						<div class="dropdown-menu dropdown-menu-right profile-notification">
+							<div class="pro-head">
+								<img src="../assets/images/user/avatar-1.jpg" class="img-radius" alt="User-Profile-Image">
+								<span>John Doe</span>
+								<a href="auth-signin.html" class="dud-logout" title="Logout">
+									<i class="feather icon-log-out"></i>
+								</a>
+							</div>
+							<ul class="pro-body">
+								<li><a href="#!" class="dropdown-item"><i class="feather icon-settings"></i> Settings</a></li>
+								<li><a href="#!" class="dropdown-item"><i class="feather icon-user"></i> Profile</a></li>
+								<li><a href="message.html" class="dropdown-item"><i class="feather icon-mail"></i> My Messages</a></li>
+								<li><a href="auth-signin.html" class="dropdown-item"><i class="feather icon-lock"></i> Lock Screen</a></li>
+							</ul>
+						</div>
+					</div>
+				</li>
+			</ul>
+		</div>
+	</header>
+	<!-- [ Header ] end -->
+
+	<!-- [ Main Content ] start -->
+	<div class="pcoded-main-container">
+		<div class="pcoded-wrapper">
+			<div class="pcoded-content">
+				<div class="pcoded-inner-content">
+					<div class="main-body">
+						<div class="page-wrapper">
+						
+							{% block content %}
+							<!-- [ breadcrumb ] end -->
+							<!-- [ Main Content ] start -->
+							
+							<!-- Conductor Badge -->
+							<div class="row mb-4">
+								<div class="col-12">
+									<div class="text-center">
+										<div class="badge badge-lg" style="background: linear-gradient(135deg, #4680ff 0%, #F37021 100%); color: white; padding: 15px 40px; border-radius: 50px; font-size: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+											<i class="fas fa-user-tie mr-2"></i>
+											<strong>Conductor:</strong> {{ request.user.get_full_name }}
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<!-- Onboard Cargo Button -->
+								<div class="col-xl-6 col-md-6 mb-4">
+									<a href="{% url 'conductor_onboard' %}" class="action-card-link">
+										<div class="card action-card" style="border: 3px solid #4680ff; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 40px 20px;">
+												<div class="action-icon mb-3" style="font-size: 60px; color: #4680ff;">
+													<i class="fas fa-truck-loading"></i>
+												</div>
+												<h3 class="mb-2" style="color: #4680ff; font-weight: 700;">Onboard Cargo</h3>
+											</div>
+										</div>
+									</a>
+								</div>
+
+								<!-- Offboard Cargo Button -->
+								<div class="col-xl-6 col-md-6 mb-4">
+									<a href="{% url 'conductor_offboard' %}" class="action-card-link">
+										<div class="card action-card" style="border: 3px solid #F37021; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 40px 20px;">
+												<div class="action-icon mb-3" style="font-size: 60px; color: #F37021;">
+													<i class="fas fa-dolly"></i>
+												</div>
+												<h3 class="mb-2" style="color: #F37021; font-weight: 700;">Offboard Cargo</h3>
+											</div>
+										</div>
+									</a>
+								</div>
+
+								<!-- View Onboarded List Button -->
+								<div class="col-xl-6 col-md-6 mb-4">
+									<a href="{% url 'conductor_onboarded_cargos' %}" class="action-card-link">
+										<div class="card action-card" style="border: 3px solid #2ed8b6; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 40px 20px;">
+												<div class="action-icon mb-3" style="font-size: 60px; color: #2ed8b6;">
+													<i class="fas fa-list-alt"></i>
+												</div>
+												<h3 class="mb-2" style="color: #2ed8b6; font-weight: 700;">View Onboarded List</h3>
+											</div>
+										</div>
+									</a>
+								</div>
+
+								<!-- View Offboarded List Button -->
+								<div class="col-xl-6 col-md-6 mb-4">
+									<a href="{% url 'conductor_offboarded_cargos' %}" class="action-card-link">
+										<div class="card action-card" style="border: 3px solid #FFB64D; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 40px 20px;">
+												<div class="action-icon mb-3" style="font-size: 60px; color: #FFB64D;">
+													<i class="fas fa-clipboard-check"></i>
+												</div>
+												<h3 class="mb-2" style="color: #FFB64D; font-weight: 700;">View Offboarded List</h3>
+											</div>
+										</div>
+									</a>
+								</div>
+							</div>
+
+							<style>
+								.action-card-link {
+									text-decoration: none;
+									display: block;
+								}
+								
+								.action-card:hover {
+									transform: translateY(-5px);
+									box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+								}
+								
+								.action-card {
+									box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+								}
+								
+								.action-icon {
+									transition: transform 0.3s ease;
+								}
+								
+								.action-card:hover .action-icon {
+									transform: scale(1.1);
+								}
+								
+								/* Mobile responsive */
+								@media (max-width: 768px) {
+									.action-card .card-body {
+										padding: 30px 15px !important;
+									}
+									
+									.action-icon {
+										font-size: 50px !important;
+									}
+									
+									.action-card h3 {
+										font-size: 20px !important;
+									}
+									
+									.action-card p {
+										font-size: 13px !important;
+									}
+								}
+							</style>
+
+							<!-- [ Main Content ] end -->
+							{% endblock %}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- [ Main Content ] end -->
+
+	<!-- Warning Section start -->
+	<!-- Older IE warning message -->
+	<!--[if lt IE 11]>
+        <div class="ie-warning">
+            <h1>Warning!!</h1>
+            <p>You are using an outdated version of Internet Explorer, please upgrade
+               <br/>to any of the following web browsers to access this website.
+            </p>
+            <div class="iew-container">
+                <ul class="iew-download">
+                    <li>
+                        <a href="http://www.google.com/chrome/">
+                            <img src="../assets/images/browser/chrome.png" alt="Chrome">
+                            <div>Chrome</div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://www.mozilla.org/en-US/firefox/new/">
+                            <img src="../assets/images/browser/firefox.png" alt="Firefox">
+                            <div>Firefox</div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="http://www.opera.com">
+                            <img src="../assets/images/browser/opera.png" alt="Opera">
+                            <div>Opera</div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://www.apple.com/safari/">
+                            <img src="../assets/images/browser/safari.png" alt="Safari">
+                            <div>Safari</div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="http://windows.microsoft.com/en-us/internet-explorer/download-ie">
+                            <img src="../assets/images/browser/ie.png" alt="">
+                            <div>IE (11 & above)</div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <p>Sorry for the inconvenience!</p>
+        </div>
+    <![endif]-->
+	<!-- Warning Section Ends -->
+
+	<!-- Required Js -->
+	<script src="{% static 'assets/js/vendor-all.min.js' %}"></script>
+	<script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+	<script src="{% static 'assets/js/pcoded.min.js' %}"></script>
+	
+	<!-- SweetAlert2 JS -->
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+	{% block extra_js %}{% endblock %}
+
+</body>
+
+</html>

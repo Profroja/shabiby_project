@@ -1,0 +1,623 @@
+{% extends 'admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}📦 Shabiby Cargo - Cargo Centers{% endblock %}
+
+{% block extra_css %}
+<style>
+	/* Custom styles for cargo centers page */
+	.status-badge {
+		padding: 5px 12px;
+		border-radius: 12px;
+		font-size: 11px;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+	.status-active {
+		background: #48bb78;
+		color: white;
+	}
+	.status-inactive {
+		background: #f56565;
+		color: white;
+	}
+
+	.action-btn {
+		padding: 5px 10px;
+		margin: 0 2px;
+		border-radius: 6px;
+		font-size: 12px;
+	}
+
+	.center-card {
+		border-left: 4px solid #4299e1;
+		transition: all 0.3s;
+	}
+
+	.center-card:hover {
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+		transform: translateY(-2px);
+	}
+
+	.toggle-switch {
+		position: relative;
+		display: inline-block;
+		width: 50px;
+		height: 24px;
+	}
+
+	.toggle-switch input {
+		opacity: 0;
+		width: 0;
+		height: 0;
+	}
+
+	.slider {
+		position: absolute;
+		cursor: pointer;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: #ccc;
+		transition: .4s;
+		border-radius: 24px;
+	}
+
+	.slider:before {
+		position: absolute;
+		content: "";
+		height: 16px;
+		width: 16px;
+		left: 4px;
+		bottom: 4px;
+		background-color: white;
+		transition: .4s;
+		border-radius: 50%;
+	}
+
+	input:checked + .slider {
+		background-color: #48bb78;
+	}
+
+	input:checked + .slider:before {
+		transform: translateX(26px);
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- [ breadcrumb ] start -->
+<div class="page-header">
+	<div class="page-block">
+		<div class="row align-items-center">
+			<div class="col-md-12">
+				<div class="page-header-title">
+					<h5 class="m-b-10">Cargo Centers Management</h5>
+				</div>
+				<ul class="breadcrumb">
+					<li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}"><i class="feather icon-home"></i></a></li>
+					<li class="breadcrumb-item"><a href="#!">Cargo Centers</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- [ breadcrumb ] end -->
+
+<!-- [ Main Content ] start -->
+<div class="row">
+								<!-- Summary Cards -->
+								<div class="col-md-6 col-xl-4">
+									<div class="card">
+										<div class="card-body">
+											<h6 class="mb-4">Total Centers</h6>
+											<div class="row d-flex align-items-center">
+												<div class="col-9">
+													<h3 class="f-w-300 d-flex align-items-center m-b-0">
+														<i class="feather icon-map-pin text-c-blue f-30 m-r-10"></i> {{ total_centers }}
+													</h3>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-md-6 col-xl-4">
+									<div class="card">
+										<div class="card-body">
+											<h6 class="mb-4">Active Centers</h6>
+											<div class="row d-flex align-items-center">
+												<div class="col-9">
+													<h3 class="f-w-300 d-flex align-items-center m-b-0">
+														<i class="feather icon-check-circle text-c-green f-30 m-r-10"></i> {{ active_centers }}
+													</h3>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-md-6 col-xl-4">
+									<div class="card">
+										<div class="card-body">
+											<h6 class="mb-4">Inactive Centers</h6>
+											<div class="row d-flex align-items-center">
+												<div class="col-9">
+													<h3 class="f-w-300 d-flex align-items-center m-b-0">
+														<i class="feather icon-x-circle text-c-red f-30 m-r-10"></i> {{ inactive_centers }}
+													</h3>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<!-- Cargo Centers Table -->
+								<div class="col-xl-12">
+									<div class="card">
+										<div class="card-header">
+											<h5>All Cargo Centers (Branches)</h5>
+											<button class="btn btn-primary btn-sm float-right" data-toggle="modal" data-target="#addCenterModal">
+												<i class="feather icon-plus"></i> Add New Center
+											</button>
+										</div>
+										<div class="card-body table-border-style">
+											<div class="table-responsive">
+												<table class="table table-hover" id="centersTable">
+													<thead>
+														<tr>
+															<th>#</th>
+															<th>Center Name</th>
+															<th>Location</th>
+															<th>Status</th>
+															<th>Actions</th>
+														</tr>
+													</thead>
+													<tbody>
+														{% for center in cargo_centers %}
+														<tr>
+															<td>{{ forloop.counter }}</td>
+															<td><strong>{{ center.center_name }}</strong></td>
+															<td>{{ center.location }}</td>
+															<td>
+																{% if center.is_active %}
+																<span class="status-badge status-active">Active</span>
+																{% else %}
+																<span class="status-badge status-inactive">Inactive</span>
+																{% endif %}
+															</td>
+															<td>
+																<button class="btn btn-info btn-sm action-btn" onclick="editCenter({{ center.id }})">
+																	<i class="feather icon-edit"></i> Edit
+																</button>
+																<button class="btn btn-danger btn-sm action-btn" onclick="deleteCenter({{ center.id }})">
+																	<i class="feather icon-trash-2"></i> Delete
+																</button>
+															</td>
+														</tr>
+														{% empty %}
+														<tr>
+															<td colspan="5" class="text-center">No cargo centers found. Click "Add New Center" to create one.</td>
+														</tr>
+														{% endfor %}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<!-- [ Main Content ] end -->
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- [ Main Content ] end -->
+
+	<!-- Add Center Modal -->
+	<div class="modal fade" id="addCenterModal" tabindex="-1" role="dialog" aria-labelledby="addCenterModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="addCenterModalLabel">
+						<i class="feather icon-map-pin"></i> Add New Cargo Center
+					</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<form id="addCenterForm">
+						<div class="row">
+							<div class="col-md-12">
+								<div class="form-group">
+									<label for="centerName">Center Name <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="centerName" name="centerName" placeholder="e.g., Dar es Salaam Main Branch" required>
+									<small class="form-text text-muted">Enter a descriptive name for the cargo center</small>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<div class="form-group">
+									<label for="location">Location <span class="text-danger">*</span></label>
+									<select class="form-control" id="location" name="location" required>
+										<option value="">Select Location</option>
+										<option value="Dar es Salaam">Dar es Salaam</option>
+										<option value="Dodoma">Dodoma</option>
+										<option value="Arusha">Arusha</option>
+										<option value="Mwanza">Mwanza</option>
+										<option value="Mbeya">Mbeya</option>
+										<option value="Morogoro">Morogoro</option>
+										<option value="Tanga">Tanga</option>
+										<option value="Moshi">Moshi</option>
+										<option value="Iringa">Iringa</option>
+										<option value="Tabora">Tabora</option>
+										<option value="Kigoma">Kigoma</option>
+										<option value="Songea">Songea</option>
+										<option value="Mtwara">Mtwara</option>
+										<option value="Lindi">Lindi</option>
+										<option value="Shinyanga">Shinyanga</option>
+										<option value="Singida">Singida</option>
+										<option value="Bukoba">Bukoba</option>
+										<option value="Musoma">Musoma</option>
+									</select>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<div class="form-group">
+									<label for="isActive">Status</label>
+									<div class="d-flex align-items-center">
+										<label class="toggle-switch mb-0 mr-3">
+											<input type="checkbox" id="isActive" name="isActive" checked>
+											<span class="slider"></span>
+										</label>
+										<span id="statusLabel" class="font-weight-bold text-success">Active</span>
+									</div>
+									<small class="form-text text-muted">Toggle to activate or deactivate this center</small>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-primary" onclick="saveCenter()">
+						<i class="feather icon-save"></i> Save Center
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Edit Center Modal -->
+	<div class="modal fade" id="editCenterModal" tabindex="-1" role="dialog" aria-labelledby="editCenterModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="editCenterModalLabel">
+						<i class="feather icon-edit"></i> Edit Cargo Center
+					</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<form id="editCenterForm">
+						<input type="hidden" id="editCenterId" name="centerId">
+						<div class="row">
+							<div class="col-md-12">
+								<div class="form-group">
+									<label for="editCenterName">Center Name <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="editCenterName" name="centerName" placeholder="e.g., Dar es Salaam Main Branch" required>
+									<small class="form-text text-muted">Enter a descriptive name for the cargo center</small>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<div class="form-group">
+									<label for="editLocation">Location <span class="text-danger">*</span></label>
+									<select class="form-control" id="editLocation" name="location" required>
+										<option value="">Select Location</option>
+										<option value="Dar es Salaam">Dar es Salaam</option>
+										<option value="Dodoma">Dodoma</option>
+										<option value="Arusha">Arusha</option>
+										<option value="Mwanza">Mwanza</option>
+										<option value="Mbeya">Mbeya</option>
+										<option value="Morogoro">Morogoro</option>
+										<option value="Tanga">Tanga</option>
+										<option value="Moshi">Moshi</option>
+										<option value="Iringa">Iringa</option>
+										<option value="Tabora">Tabora</option>
+										<option value="Kigoma">Kigoma</option>
+										<option value="Songea">Songea</option>
+										<option value="Mtwara">Mtwara</option>
+										<option value="Lindi">Lindi</option>
+										<option value="Shinyanga">Shinyanga</option>
+										<option value="Singida">Singida</option>
+										<option value="Bukoba">Bukoba</option>
+										<option value="Musoma">Musoma</option>
+									</select>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<div class="form-group">
+									<label for="editIsActive">Status</label>
+									<div class="d-flex align-items-center">
+										<label class="toggle-switch mb-0 mr-3">
+											<input type="checkbox" id="editIsActive" name="isActive">
+											<span class="slider"></span>
+										</label>
+										<span id="editStatusLabel" class="font-weight-bold">Active</span>
+									</div>
+									<small class="form-text text-muted">Toggle to activate or deactivate this center</small>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-primary" onclick="updateCenter()">
+						<i class="feather icon-save"></i> Update Center
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- [ Main Content ] end -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	// Toggle status label on add form
+	document.getElementById('isActive').addEventListener('change', function() {
+		const label = document.getElementById('statusLabel');
+		if (this.checked) {
+			label.textContent = 'Active';
+			label.className = 'font-weight-bold text-success';
+		} else {
+			label.textContent = 'Inactive';
+			label.className = 'font-weight-bold text-danger';
+		}
+	});
+
+	// Toggle status label on edit form
+	document.getElementById('editIsActive').addEventListener('change', function() {
+		const label = document.getElementById('editStatusLabel');
+		if (this.checked) {
+			label.textContent = 'Active';
+			label.className = 'font-weight-bold text-success';
+		} else {
+			label.textContent = 'Inactive';
+			label.className = 'font-weight-bold text-danger';
+		}
+	});
+
+	// Save new center
+	function saveCenter() {
+		const form = document.getElementById('addCenterForm');
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
+
+		const formData = new FormData(form);
+		const data = {
+			centerName: formData.get('centerName'),
+			location: formData.get('location'),
+			isActive: document.getElementById('isActive').checked
+		};
+
+		// Send data to backend API
+		fetch('/api/cargo-centers/create/', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data)
+		})
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				Swal.fire({
+					icon: 'success',
+					title: 'Success!',
+					text: 'Cargo center added successfully!',
+					confirmButtonColor: '#4099ff'
+				}).then(() => {
+					$('#addCenterModal').modal('hide');
+					form.reset();
+					document.getElementById('isActive').checked = true;
+					document.getElementById('statusLabel').textContent = 'Active';
+					document.getElementById('statusLabel').className = 'font-weight-bold text-success';
+					location.reload();
+				});
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to add cargo center. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Edit center
+	function editCenter(centerId) {
+		// Fetch center data from backend
+		fetch(`/api/cargo-centers/${centerId}/`)
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				const center = result.center;
+				document.getElementById('editCenterId').value = centerId;
+				document.getElementById('editCenterName').value = center.centerName;
+				document.getElementById('editLocation').value = center.location;
+				document.getElementById('editIsActive').checked = center.isActive;
+				
+				const label = document.getElementById('editStatusLabel');
+				if (center.isActive) {
+					label.textContent = 'Active';
+					label.className = 'font-weight-bold text-success';
+				} else {
+					label.textContent = 'Inactive';
+					label.className = 'font-weight-bold text-danger';
+				}
+
+				$('#editCenterModal').modal('show');
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to fetch cargo center details. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Update center
+	function updateCenter() {
+		const form = document.getElementById('editCenterForm');
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
+
+		const formData = new FormData(form);
+		const data = {
+			centerId: formData.get('centerId'),
+			centerName: formData.get('centerName'),
+			location: formData.get('location'),
+			isActive: document.getElementById('editIsActive').checked
+		};
+		const centerId = data.centerId;
+
+		// Send update request to backend API
+		fetch(`/api/cargo-centers/${centerId}/update/`, {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data)
+		})
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				Swal.fire({
+					icon: 'success',
+					title: 'Success!',
+					text: 'Cargo center updated successfully!',
+					confirmButtonColor: '#4099ff'
+				}).then(() => {
+					$('#editCenterModal').modal('hide');
+					location.reload();
+				});
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to update cargo center. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Delete center
+	function deleteCenter(centerId) {
+		Swal.fire({
+			title: 'Are you sure?',
+			text: "You won't be able to revert this!",
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#d33',
+			cancelButtonColor: '#3085d6',
+			confirmButtonText: 'Yes, delete it!'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				// Send delete request to backend API
+				fetch(`/api/cargo-centers/${centerId}/delete/`, {
+					method: 'DELETE',
+				})
+				.then(response => response.json())
+				.then(result => {
+					if (result.success) {
+						Swal.fire({
+							icon: 'success',
+							title: 'Deleted!',
+							text: 'Cargo center deleted successfully!',
+							confirmButtonColor: '#4099ff'
+						}).then(() => {
+							location.reload();
+						});
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error!',
+							text: result.message,
+							confirmButtonColor: '#4099ff'
+						});
+					}
+				})
+				.catch(error => {
+					console.error('Error:', error);
+					Swal.fire({
+						icon: 'error',
+						title: 'Error!',
+						text: 'Failed to delete cargo center. Please try again.',
+						confirmButtonColor: '#4099ff'
+					});
+				});
+			}
+		});
+	}
+
+	// Search functionality
+	document.getElementById('m-search').addEventListener('input', function(e) {
+		const searchTerm = e.target.value.toLowerCase();
+		const rows = document.querySelectorAll('#centersTable tbody tr');
+
+		rows.forEach(row => {
+			const text = row.textContent.toLowerCase();
+			row.style.display = text.includes(searchTerm) ? '' : 'none';
+		});
+	});
+</script>
+{% endblock %}

@@ -1,0 +1,576 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Vehicles - Shabiby Cargo{% endblock %}
+
+{% block content %}
+<!-- [ breadcrumb ] start -->
+<div class="page-header">
+	<div class="page-block">
+		<div class="row align-items-center">
+			<div class="col-md-12">
+				<div class="page-header-title">
+					<h5 class="m-b-10">Vehicles Management</h5>
+				</div>
+				<ul class="breadcrumb">
+					<li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}"><i class="feather icon-home"></i></a></li>
+					<li class="breadcrumb-item"><a href="#!">Vehicles</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- [ breadcrumb ] end -->
+
+<!-- [ Main Content ] start -->
+<div class="row">
+	<!-- Summary Cards -->
+	<div class="col-md-6 col-xl-4">
+		<div class="card">
+			<div class="card-body">
+				<h6 class="mb-4">Total Vehicles</h6>
+				<div class="row d-flex align-items-center">
+					<div class="col-9">
+						<h3 class="f-w-300 d-flex align-items-center m-b-0">
+							<i class="fas fa-truck text-c-blue f-30 m-r-10"></i> {{ total_vehicles }}
+						</h3>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-6 col-xl-4">
+		<div class="card">
+			<div class="card-body">
+				<h6 class="mb-4">Active Vehicles</h6>
+				<div class="row d-flex align-items-center">
+					<div class="col-9">
+						<h3 class="f-w-300 d-flex align-items-center m-b-0">
+							<i class="feather icon-check-circle text-c-green f-30 m-r-10"></i> {{ active_vehicles }}
+						</h3>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-6 col-xl-4">
+		<div class="card">
+			<div class="card-body">
+				<h6 class="mb-4">Inactive Vehicles</h6>
+				<div class="row d-flex align-items-center">
+					<div class="col-9">
+						<h3 class="f-w-300 d-flex align-items-center m-b-0">
+							<i class="feather icon-x-circle text-c-red f-30 m-r-10"></i> {{ inactive_vehicles }}
+						</h3>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Vehicles Table -->
+	<div class="col-xl-12">
+		<div class="card">
+			<div class="card-header">
+				<h5>All Vehicles</h5>
+				<button class="btn btn-primary btn-sm float-right" data-toggle="modal" data-target="#addVehicleModal">
+					<i class="feather icon-plus"></i> Add New Vehicle
+				</button>
+			</div>
+			<div class="card-body table-border-style">
+				<div class="table-responsive">
+					<table class="table table-hover" id="vehiclesTable">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Plate Number</th>
+								<th>Vehicle Type</th>
+								<th>Model</th>
+								<th>Owner</th>
+								<th>Max Weight</th>
+								<th>Status</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for vehicle in vehicles %}
+							<tr>
+								<td>{{ forloop.counter }}</td>
+								<td><strong>{{ vehicle.plate_number }}</strong></td>
+								<td>{{ vehicle.get_vehicle_type_display }}</td>
+								<td>{{ vehicle.vehicle_model }}</td>
+								<td>{{ vehicle.company_owner }}</td>
+								<td>{{ vehicle.max_weight }} tons</td>
+								<td>
+									{% if vehicle.is_active %}
+									<span class="badge badge-success">Active</span>
+									{% else %}
+									<span class="badge badge-danger">Inactive</span>
+									{% endif %}
+								</td>
+								<td>
+									<button class="btn btn-info btn-sm" onclick="editVehicle({{ vehicle.id }})">
+										<i class="feather icon-edit"></i>
+									</button>
+									<button class="btn btn-danger btn-sm" onclick="deleteVehicle({{ vehicle.id }})">
+										<i class="feather icon-trash-2"></i>
+									</button>
+								</td>
+							</tr>
+							{% empty %}
+							<tr>
+								<td colspan="8" class="text-center">No vehicles found. Click "Add New Vehicle" to create one.</td>
+							</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- [ Main Content ] end -->
+
+<!-- Add Vehicle Modal -->
+<div class="modal fade" id="addVehicleModal" tabindex="-1" role="dialog" aria-labelledby="addVehicleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="addVehicleModalLabel">Add New Vehicle</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<form id="addVehicleForm">
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="vehicleType">Vehicle Type <span class="text-danger">*</span></label>
+								<select class="form-control" id="vehicleType" name="vehicleType" required>
+									<option value="">Select Type</option>
+									<option value="truck">Truck</option>
+									<option value="bus">Bus</option>
+									<option value="car">Car</option>
+									<option value="van">Van</option>
+									<option value="pickup">Pickup</option>
+									<option value="trailer">Trailer</option>
+									<option value="motorcycle">Motorcycle</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="vehicleModel">Vehicle Model <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="vehicleModel" name="vehicleModel" placeholder="e.g., Toyota Hilux" required>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="companyOwner">Company/Owner <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="companyOwner" name="companyOwner" placeholder="Company or Owner Name" required>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="plateNumber">Plate Number <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="plateNumber" name="plateNumber" placeholder="e.g., T123 ABC" required>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="registrationNumber">Registration Number <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="registrationNumber" name="registrationNumber" placeholder="Registration Number" required>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="maxWeight">Max Weight (Tons) <span class="text-danger">*</span></label>
+								<input type="number" step="0.01" class="form-control" id="maxWeight" name="maxWeight" placeholder="e.g., 5.5" required>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="chassisNumber">Chassis Number (Optional)</label>
+								<input type="text" class="form-control" id="chassisNumber" name="chassisNumber" placeholder="Chassis Number">
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="isActive">Status</label>
+								<div class="form-check">
+									<input type="checkbox" class="form-check-input" id="isActive" name="isActive" checked>
+									<label class="form-check-label font-weight-bold text-success" for="isActive" id="statusLabel">Active</label>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary" onclick="saveVehicle()">Save Vehicle</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Edit Vehicle Modal -->
+<div class="modal fade" id="editVehicleModal" tabindex="-1" role="dialog" aria-labelledby="editVehicleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="editVehicleModalLabel">Edit Vehicle</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<form id="editVehicleForm">
+					<input type="hidden" id="editVehicleId" name="vehicleId">
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editVehicleType">Vehicle Type <span class="text-danger">*</span></label>
+								<select class="form-control" id="editVehicleType" name="vehicleType" required>
+									<option value="">Select Type</option>
+									<option value="truck">Truck</option>
+									<option value="bus">Bus</option>
+									<option value="car">Car</option>
+									<option value="van">Van</option>
+									<option value="pickup">Pickup</option>
+									<option value="trailer">Trailer</option>
+									<option value="motorcycle">Motorcycle</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editVehicleModel">Vehicle Model <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="editVehicleModel" name="vehicleModel" required>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editCompanyOwner">Company/Owner <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="editCompanyOwner" name="companyOwner" required>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editPlateNumber">Plate Number <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="editPlateNumber" name="plateNumber" required>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editRegistrationNumber">Registration Number <span class="text-danger">*</span></label>
+								<input type="text" class="form-control" id="editRegistrationNumber" name="registrationNumber" required>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editMaxWeight">Max Weight (Tons) <span class="text-danger">*</span></label>
+								<input type="number" step="0.01" class="form-control" id="editMaxWeight" name="maxWeight" required>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editChassisNumber">Chassis Number (Optional)</label>
+								<input type="text" class="form-control" id="editChassisNumber" name="chassisNumber">
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="editIsActive">Status</label>
+								<div class="form-check">
+									<input type="checkbox" class="form-check-input" id="editIsActive" name="isActive">
+									<label class="form-check-label font-weight-bold" for="editIsActive" id="editStatusLabel">Active</label>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary" onclick="updateVehicle()">Update Vehicle</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	// Toggle status label when checkbox changes (Add Modal)
+	document.getElementById('isActive').addEventListener('change', function() {
+		const label = document.getElementById('statusLabel');
+		if (this.checked) {
+			label.textContent = 'Active';
+			label.className = 'form-check-label font-weight-bold text-success';
+		} else {
+			label.textContent = 'Inactive';
+			label.className = 'form-check-label font-weight-bold text-danger';
+		}
+	});
+
+	// Toggle status label when checkbox changes (Edit Modal)
+	document.getElementById('editIsActive').addEventListener('change', function() {
+		const label = document.getElementById('editStatusLabel');
+		if (this.checked) {
+			label.textContent = 'Active';
+			label.className = 'form-check-label font-weight-bold text-success';
+		} else {
+			label.textContent = 'Inactive';
+			label.className = 'form-check-label font-weight-bold text-danger';
+		}
+	});
+
+	// Save new vehicle
+	function saveVehicle() {
+		const form = document.getElementById('addVehicleForm');
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
+
+		const formData = new FormData(form);
+		const data = {
+			vehicleType: formData.get('vehicleType'),
+			vehicleModel: formData.get('vehicleModel'),
+			companyOwner: formData.get('companyOwner'),
+			plateNumber: formData.get('plateNumber'),
+			registrationNumber: formData.get('registrationNumber'),
+			maxWeight: formData.get('maxWeight'),
+			chassisNumber: formData.get('chassisNumber') || null,
+			isActive: document.getElementById('isActive').checked
+		};
+
+		// Send data to backend API
+		fetch('/api/vehicles/create/', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data)
+		})
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				Swal.fire({
+					icon: 'success',
+					title: 'Success!',
+					text: 'Vehicle added successfully!',
+					confirmButtonColor: '#4099ff'
+				}).then(() => {
+					$('#addVehicleModal').modal('hide');
+					form.reset();
+					document.getElementById('isActive').checked = true;
+					document.getElementById('statusLabel').textContent = 'Active';
+					document.getElementById('statusLabel').className = 'form-check-label font-weight-bold text-success';
+					location.reload();
+				});
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to add vehicle. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Edit vehicle
+	function editVehicle(vehicleId) {
+		// Fetch vehicle data from backend
+		fetch(`/api/vehicles/${vehicleId}/`)
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				const vehicle = result.vehicle;
+				document.getElementById('editVehicleId').value = vehicleId;
+				document.getElementById('editVehicleType').value = vehicle.vehicleType;
+				document.getElementById('editVehicleModel').value = vehicle.vehicleModel;
+				document.getElementById('editCompanyOwner').value = vehicle.companyOwner;
+				document.getElementById('editPlateNumber').value = vehicle.plateNumber;
+				document.getElementById('editRegistrationNumber').value = vehicle.registrationNumber;
+				document.getElementById('editMaxWeight').value = vehicle.maxWeight;
+				document.getElementById('editChassisNumber').value = vehicle.chassisNumber || '';
+				document.getElementById('editIsActive').checked = vehicle.isActive;
+				
+				const label = document.getElementById('editStatusLabel');
+				if (vehicle.isActive) {
+					label.textContent = 'Active';
+					label.className = 'form-check-label font-weight-bold text-success';
+				} else {
+					label.textContent = 'Inactive';
+					label.className = 'form-check-label font-weight-bold text-danger';
+				}
+
+				$('#editVehicleModal').modal('show');
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to fetch vehicle details. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Update vehicle
+	function updateVehicle() {
+		const form = document.getElementById('editVehicleForm');
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
+
+		const formData = new FormData(form);
+		const data = {
+			vehicleId: formData.get('vehicleId'),
+			vehicleType: formData.get('vehicleType'),
+			vehicleModel: formData.get('vehicleModel'),
+			companyOwner: formData.get('companyOwner'),
+			plateNumber: formData.get('plateNumber'),
+			registrationNumber: formData.get('registrationNumber'),
+			maxWeight: formData.get('maxWeight'),
+			chassisNumber: formData.get('chassisNumber') || null,
+			isActive: document.getElementById('editIsActive').checked
+		};
+		const vehicleId = data.vehicleId;
+
+		// Send update request to backend API
+		fetch(`/api/vehicles/${vehicleId}/update/`, {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data)
+		})
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				Swal.fire({
+					icon: 'success',
+					title: 'Success!',
+					text: 'Vehicle updated successfully!',
+					confirmButtonColor: '#4099ff'
+				}).then(() => {
+					$('#editVehicleModal').modal('hide');
+					location.reload();
+				});
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to update vehicle. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Delete vehicle
+	function deleteVehicle(vehicleId) {
+		Swal.fire({
+			title: 'Are you sure?',
+			text: "You won't be able to revert this!",
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#d33',
+			cancelButtonColor: '#3085d6',
+			confirmButtonText: 'Yes, delete it!'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				// Send delete request to backend API
+				fetch(`/api/vehicles/${vehicleId}/delete/`, {
+					method: 'DELETE',
+				})
+				.then(response => response.json())
+				.then(result => {
+					if (result.success) {
+						Swal.fire({
+							icon: 'success',
+							title: 'Deleted!',
+							text: 'Vehicle deleted successfully!',
+							confirmButtonColor: '#4099ff'
+						}).then(() => {
+							location.reload();
+						});
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error!',
+							text: result.message,
+							confirmButtonColor: '#4099ff'
+						});
+					}
+				})
+				.catch(error => {
+					console.error('Error:', error);
+					Swal.fire({
+						icon: 'error',
+						title: 'Error!',
+						text: 'Failed to delete vehicle. Please try again.',
+						confirmButtonColor: '#4099ff'
+					});
+				});
+			}
+		});
+	}
+
+	// Search functionality
+	document.getElementById('m-search').addEventListener('input', function(e) {
+		const searchTerm = e.target.value.toLowerCase();
+		const rows = document.querySelectorAll('#vehiclesTable tbody tr');
+
+		rows.forEach(row => {
+			const text = row.textContent.toLowerCase();
+			row.style.display = text.includes(searchTerm) ? '' : 'none';
+		});
+	});
+</script>
+{% endblock %}

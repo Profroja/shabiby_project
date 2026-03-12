@@ -1,0 +1,76 @@
+{% extends 'branchagent_dashboard.html' %}
+
+{% block title %}Onboarded Cargo - 📦 Shabiby Cargo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+								<div class="page-block">
+									<div class="row align-items-center">
+										<div class="col-md-12">
+											<div class="page-header-title">
+												<h5 class="m-b-10">Onboarded Cargo</h5>
+											</div>
+											<ul class="breadcrumb">
+												<li class="breadcrumb-item"><a href="{% url 'branchagent_dashboard' %}"><i class="feather icon-home"></i></a></li>
+												<li class="breadcrumb-item"><a href="#!">Cargo Management</a></li>
+												<li class="breadcrumb-item"><a href="#!">Onboarded</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<div class="col-xl-12">
+									<div class="card">
+										<div class="card-header">
+											<h5>Shipped Cargo from This Branch</h5>
+											<span class="d-block m-t-5">Cargo loaded on vehicles and shipped from this branch (waiting for conductor to onboard or already onboarded)</span>
+										</div>
+										<div class="card-body table-border-style">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>#</th>
+															<th>Tracking ID</th>
+															<th>Sender</th>
+															<th>Receiver</th>
+															<th>Destination</th>
+															<th>Vehicle</th>
+															<th>Shipped Date</th>
+															<th>Status</th>
+														</tr>
+													</thead>
+													<tbody>
+														{% for cargo in cargos %}
+														<tr>
+															<td>{{ forloop.counter }}</td>
+															<td><strong>{{ cargo.tracking_number }}</strong></td>
+															<td>{{ cargo.sender.full_name }}</td>
+															<td>{{ cargo.receiver.full_name }}</td>
+															<td>{{ cargo.destination_branch.location }}</td>
+															<td>
+																{% if cargo.assigned_vehicle %}
+																	{{ cargo.assigned_vehicle.plate_number }}<br>
+																	<small class="text-muted">{{ cargo.assigned_vehicle.get_vehicle_type_display }}</small>
+																{% else %}
+																	<span class="text-muted">Not assigned</span>
+																{% endif %}
+															</td>
+															<td>{{ cargo.shipped_at|date:"d M Y H:i" }}</td>
+															<td><span class="badge badge-warning">Shipped</span></td>
+														</tr>
+														{% empty %}
+														<tr>
+															<td colspan="8" class="text-center">No onboarded cargo from this branch</td>
+														</tr>
+														{% endfor %}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+</div>
+{% endblock %}

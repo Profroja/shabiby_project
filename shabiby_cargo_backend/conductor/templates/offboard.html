@@ -1,0 +1,601 @@
+{% extends 'conductor_dashboard.html' %}
+{% load static %}
+
+{% block title %}Offboard Cargo - 📦 Shabiby Cargo 📦{% endblock %}
+
+{% block extra_css %}
+<style>
+	#qr-scanner-container {
+		display: none;
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.95);
+		z-index: 9999;
+		padding: 20px;
+	}
+	
+	#qr-reader {
+		max-width: 600px;
+		margin: 0 auto;
+		position: relative;
+		border: 3px solid #F37021;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+	
+	.scanner-header {
+		text-align: center;
+		color: white;
+		margin-bottom: 20px;
+	}
+	
+	.scanner-header h3 {
+		color: #F37021;
+		font-weight: bold;
+	}
+	
+	.close-scanner {
+		position: absolute;
+		top: 30px;
+		right: 30px;
+		background: #ff4757;
+		color: white;
+		border: none;
+		width: 50px;
+		height: 50px;
+		border-radius: 50%;
+		font-size: 24px;
+		cursor: pointer;
+		z-index: 10000;
+		box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+	}
+	
+	.close-scanner:hover {
+		background: #ff3838;
+	}
+	
+	.manual-entry-section {
+		max-width: 600px;
+		margin: 20px auto 0;
+		background: white;
+		padding: 20px;
+		border-radius: 10px;
+	}
+	
+	.scanning-box {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 250px;
+		height: 250px;
+		border: 3px solid #F37021;
+		box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+		pointer-events: none;
+	}
+	
+	.scanning-box::before,
+	.scanning-box::after {
+		content: '';
+		position: absolute;
+		width: 30px;
+		height: 30px;
+		border: 4px solid #F37021;
+	}
+	
+	.scanning-box::before {
+		top: -4px;
+		left: -4px;
+		border-right: none;
+		border-bottom: none;
+	}
+	
+	.scanning-box::after {
+		bottom: -4px;
+		right: -4px;
+		border-left: none;
+		border-top: none;
+	}
+	
+	/* Loading/Searching Indicator */
+	#searchingOverlay {
+		display: none;
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.8);
+		z-index: 99999;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.searching-content {
+		text-align: center;
+		color: white;
+	}
+	
+	.searching-spinner {
+		width: 80px;
+		height: 80px;
+		border: 8px solid #f3f3f3;
+		border-top: 8px solid #F37021;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin: 0 auto 20px;
+	}
+	
+	@keyframes spin {
+		0% { transform: rotate(0deg); }
+		100% { transform: rotate(360deg); }
+	}
+	
+	.searching-text {
+		font-size: 24px;
+		font-weight: bold;
+		color: #F37021;
+		margin-bottom: 10px;
+	}
+	
+	.searching-subtext {
+		font-size: 16px;
+		color: #ddd;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="row">
+	<div class="col-xl-12">
+		<div class="card">
+			<div class="card-body">
+				<div class="row">
+					<!-- Single Cargo Offboarding -->
+					<div class="col-md-6 mb-3">
+						<button class="btn btn-block btn-lg" id="startScannerBtn" style="padding: 30px; border-radius: 10px; background: linear-gradient(135deg, #F37021 0%, #C2185B 100%); color: white; border: none;">
+							<i class="fas fa-box fa-3x mb-3"></i>
+							<h5 class="mb-0 text-white">Offboard Single Cargo</h5>
+						</button>
+					</div>
+					
+					<!-- Multiple Cargo Offboarding -->
+					<div class="col-md-6 mb-3">
+						<button class="btn btn-success btn-block btn-lg" data-toggle="modal" data-target="#multipleOffboardModal" style="padding: 30px; border-radius: 10px;">
+							<i class="fas fa-boxes fa-3x mb-3"></i>
+							<h5 class="mb-0 text-white">Offboard Multiple Cargos</h5>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- QR Scanner Container -->
+<div id="qr-scanner-container">
+	
+	<div class="scanner-header">
+		<h3>📦 Scan Cargo QR Code 📦</h3>
+		<p>Position the QR code within the scanning box</p>
+	</div>
+	
+	<div id="qr-reader" style="position: relative;"></div>
+	
+	<div class="manual-entry-section">
+		<h5 class="text-center mb-3">Or Enter Cargo/Parcel Number</h5>
+		<div class="form-group">
+			<input type="text" class="form-control form-control-lg" id="manualCargoNumber" placeholder="Enter cargo/parcel number">
+		</div>
+		<button class="btn btn-block" id="manualSearchBtn" style="background: #F37021; color: white;">
+			<i class="feather icon-search"></i> Search Cargo
+		</button>
+	</div>
+</div>
+
+<!-- Searching/Loading Overlay -->
+<div id="searchingOverlay">
+	<div class="searching-content">
+		<div class="searching-spinner"></div>
+		<div class="searching-text">🔍 Searching Cargo...</div>
+		<div class="searching-subtext">Please wait while we locate the cargo</div>
+	</div>
+</div>
+
+<!-- Cargo Details Confirmation Modal - Step 2: Show Details & Confirm -->
+<div class="modal fade" id="cargoDetailsModal" tabindex="-1" role="dialog" aria-labelledby="cargoDetailsModalLabel" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #F37021; color: white;">
+				<h5 class="modal-title" id="cargoDetailsModalLabel">📋 Cargo Details - Confirm Offboarding</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<!-- Receipt-style cargo details -->
+				<div id="cargoDetailsContent" style="font-family: 'Courier New', monospace; border: 2px dashed #333; padding: 20px; background: #f9f9f9;">
+					<!-- Content will be populated by JavaScript -->
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-lg" id="confirmOffboardBtn" style="background: #F37021; color: white;">
+					<i class="feather icon-check-circle"></i> Confirm Offboard (Arrived at Branch)
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Multiple Offboard Modal -->
+<div class="modal fade" id="multipleOffboardModal" tabindex="-1" role="dialog" aria-labelledby="multipleOffboardModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #2ed8b6; color: white;">
+				<h5 class="modal-title" id="multipleOffboardModalLabel">📦 Offboard Multiple Cargos</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="alert alert-info">
+					<i class="feather icon-info"></i> <strong>Scan multiple cargos:</strong> Scan each cargo's QR code. They will be added to the list below.
+				</div>
+				
+				<div class="form-group">
+					<label for="multipleCargoNumber">Scan Cargo Number</label>
+					<input type="text" class="form-control form-control-lg" id="multipleCargoNumber" placeholder="Scan cargo number">
+				</div>
+				
+				<h6 class="mt-4 mb-3">Scanned Cargos (<span id="scannedCount">0</span>)</h6>
+				<div class="table-responsive">
+					<table class="table table-bordered" id="scannedCargosTable">
+						<thead class="thead-light">
+							<tr>
+								<th>#</th>
+								<th>Cargo Number</th>
+								<th>Sender</th>
+								<th>Destination</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody id="scannedCargosBody">
+							<tr id="noScannedCargos">
+								<td colspan="5" class="text-center text-muted">No cargos scanned yet</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-success btn-lg" id="confirmMultipleOffboardBtn" disabled>
+					<i class="feather icon-check-circle"></i> Offboard All (<span id="confirmCount">0</span>)
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTML5 QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+$(document).ready(function() {
+	let currentCargoId = null;
+	let scannedCargos = [];
+	let html5QrCode = null;
+	let isScannerActive = false;
+	
+	// Get CSRF token
+	function getCsrfToken() {
+		const tokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+		if (tokenElement) {
+			return tokenElement.value;
+		}
+		const name = 'csrftoken';
+		let cookieValue = null;
+		if (document.cookie && document.cookie !== '') {
+			const cookies = document.cookie.split(';');
+			for (let i = 0; i < cookies.length; i++) {
+				const cookie = cookies[i].trim();
+				if (cookie.substring(0, name.length + 1) === (name + '=')) {
+					cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+					break;
+				}
+			}
+		}
+		return cookieValue;
+	}
+	
+	const csrftoken = getCsrfToken();
+	
+	// Start scanner button
+	$('#startScannerBtn').on('click', function() {
+		$('#qr-scanner-container').show();
+		startScanner();
+	});
+	
+	// Start QR scanner
+	function startScanner() {
+		if (html5QrCode) {
+			return;
+		}
+		
+		html5QrCode = new Html5Qrcode("qr-reader");
+		
+		const onScanSuccess = (decodedText, decodedResult) => {
+			searchCargo(decodedText);
+			stopScanner();
+			$('#qr-scanner-container').hide();
+		};
+		
+		const onScanError = (errorMessage) => {
+			// Ignore scan errors
+		};
+		
+		const config = {
+			fps: 10,
+			qrbox: 250,
+			aspectRatio: 1.0
+		};
+		
+		html5QrCode.start(
+			{ facingMode: "environment" },
+			config,
+			onScanSuccess,
+			onScanError
+		).then(() => {
+			isScannerActive = true;
+		}).catch(err => {
+			console.error("Camera error:", err);
+			Swal.fire({
+				icon: 'error',
+				title: 'Camera Error',
+				text: 'Unable to access camera. Please check permissions.',
+				timer: 3000,
+				showConfirmButton: false
+			});
+		});
+	}
+	
+	// Stop scanner
+	function stopScanner() {
+		if (html5QrCode && isScannerActive) {
+			html5QrCode.stop().then(() => {
+				isScannerActive = false;
+				html5QrCode = null;
+			}).catch(err => {
+				console.error("Error stopping scanner:", err);
+			});
+		}
+	}
+	
+	// Make stopScanner globally accessible
+	window.stopScanner = stopScanner;
+	
+	// Manual search button
+	$('#manualSearchBtn').on('click', function() {
+		const cargoNumber = $('#manualCargoNumber').val().trim();
+		if (cargoNumber) {
+			searchCargo(cargoNumber);
+			stopScanner();
+			$('#qr-scanner-container').hide();
+			$('#manualCargoNumber').val('');
+		}
+	});
+	
+	// Search cargo
+	function searchCargo(cargoNumber) {
+		// Show searching overlay
+		$('#searchingOverlay').css('display', 'flex');
+		
+		$.ajax({
+			url: '/api/cargo/search/',
+			method: 'GET',
+			data: { cargo_number: cargoNumber },
+			success: function(response) {
+				// Hide searching overlay
+				$('#searchingOverlay').hide();
+				
+				if (response.success) {
+					const cargo = response.cargo;
+					
+					// Check if cargo is in shipped status
+					if (cargo.status !== 'Shipped (On Way)') {
+						Swal.fire({
+							icon: 'warning',
+							title: 'Invalid Status',
+							text: `This cargo is ${cargo.status}. Only cargos that are "On Way" can be offboarded.`,
+							timer: 4000,
+							showConfirmButton: false
+						});
+						return;
+					}
+					
+					currentCargoId = cargo.id;
+					displayCargoDetails(cargo);
+					$('#cargoDetailsModal').modal('show');
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Not Found',
+						text: response.message,
+						timer: 3000,
+						showConfirmButton: false
+					});
+				}
+			},
+			error: function() {
+				// Hide searching overlay
+				$('#searchingOverlay').hide();
+				
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'Failed to search cargo. Please try again.',
+					timer: 3000,
+					showConfirmButton: false
+				});
+			}
+		});
+	}
+	
+	// Display cargo details in receipt style
+	function displayCargoDetails(cargo) {
+		const html = `
+			<div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px;">
+				<h4 style="margin: 0; font-weight: bold; color: #000;">📦 SHABIBY CARGO 📦</h4>
+				<p style="margin: 5px 0; font-size: 13px; color: #000; font-weight: 600;">CARGO OFFBOARDING CONFIRMATION</p>
+				<p style="margin: 8px 0 0 0; font-size: 14px; color: #000;">
+					<strong>FROM:</strong> <span style="color: #F37021; font-weight: bold;">${cargo.origin}</span> 
+					<strong style="margin-left: 10px;">TO:</strong> <span style="color: #F37021; font-weight: bold;">${cargo.destination}</span>
+				</p>
+			</div>
+			
+			<div style="margin-bottom: 15px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 14px;">CARGO INFORMATION</strong>
+				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Cargo Number:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold;">${cargo.cargo_number}</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Receipt Number:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receipt_number || 'N/A'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Description:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.description}</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Quantity:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.quantity} pcs</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Weight:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.weight ? cargo.weight + ' kg' : 'Not specified'}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 14px;">SENDER DETAILS</strong>
+				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.sender_name}</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.sender_phone}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 14px;">RECEIVER DETAILS</strong>
+				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receiver_name}</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receiver_phone}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 14px;">🚛 VEHICLE INFORMATION</strong>
+				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Vehicle:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold;">${cargo.vehicle_plate || 'Not assigned'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Model:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.vehicle_model || 'N/A'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 5px 0;"><strong style="color: #000;">Conductor:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.conductor_name || 'N/A'}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 2px dashed #000; padding-top: 15px; text-align: center;">
+				<p style="margin: 5px 0; font-size: 13px; color: #000;">Current Status: <strong style="color: #F37021;">${cargo.status}</strong></p>
+				<p style="margin: 5px 0; font-size: 12px; color: #000; font-weight: 600;">Confirm to mark as ARRIVED AT BRANCH</p>
+			</div>
+		`;
+		
+		$('#cargoDetailsContent').html(html);
+	}
+	
+	// Confirm single offboard
+	$('#confirmOffboardBtn').on('click', function() {
+		if (!currentCargoId) return;
+		
+		$(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+		
+		$.ajax({
+			url: '/api/cargo/offboard/',
+			method: 'POST',
+			headers: {'X-CSRFToken': csrftoken},
+			contentType: 'application/json',
+			data: JSON.stringify({ cargo_id: currentCargoId }),
+			success: function(response) {
+				if (response.success) {
+					$('#cargoDetailsModal').modal('hide');
+					Swal.fire({
+						icon: 'success',
+						title: 'Offboarded Successfully!',
+						text: response.message,
+						timer: 3000,
+						showConfirmButton: false,
+						timerProgressBar: true
+					}).then(() => {
+						currentCargoId = null;
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Failed',
+						text: response.message,
+						timer: 3000,
+						showConfirmButton: false
+					});
+				}
+			},
+			error: function() {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'Failed to offboard cargo. Please try again.',
+					timer: 3000,
+					showConfirmButton: false
+				});
+			},
+			complete: function() {
+				$('#confirmOffboardBtn').prop('disabled', false).html('<i class="feather icon-check-circle"></i> Confirm Offboard (Arrived at Branch)');
+			}
+		});
+	});
+	
+	// Reset modals on close
+	$('#cargoDetailsModal').on('hidden.bs.modal', function() {
+		currentCargoId = null;
+	});
+});
+</script>
+{% endblock %}

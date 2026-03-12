@@ -1,0 +1,718 @@
+{% extends 'branchagent_dashboard.html' %}
+{% load static %}
+
+{% block title %}Customer Delivery - 📦 Shabiby Cargo 📦{% endblock %}
+
+{% block extra_css %}
+<style>
+	#qr-scanner-container {
+		display: block;
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.95);
+		z-index: 9999;
+		padding: 20px;
+	}
+	
+	#qr-reader {
+		max-width: 600px;
+		margin: 0 auto;
+		position: relative;
+		border: 3px solid #2ed8b6;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+	
+	.scanner-header {
+		text-align: center;
+		color: white;
+		margin-bottom: 20px;
+	}
+	
+	.scanner-header h3 {
+		color: #2ed8b6;
+		font-weight: bold;
+	}
+	
+	.close-scanner {
+		position: absolute;
+		top: 30px;
+		right: 30px;
+		background: #ff4757;
+		color: white;
+		border: none;
+		width: 50px;
+		height: 50px;
+		border-radius: 50%;
+		font-size: 24px;
+		cursor: pointer;
+		z-index: 10000;
+		box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+	}
+	
+	.close-scanner:hover {
+		background: #ff3838;
+	}
+	
+	.manual-entry-section {
+		max-width: 600px;
+		margin: 20px auto 0;
+		background: white;
+		padding: 20px;
+		border-radius: 10px;
+	}
+	
+	.delivery-option-card:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<!-- Delivery Type Selection -->
+<div id="deliveryTypeSelection" class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-header bg-success text-white">
+				<h4 class="mb-0"><i class="feather icon-package"></i> Customer Delivery</h4>
+			</div>
+			<div class="card-body text-center" style="padding: 40px 20px;">
+				<h5 class="mb-4">Select Delivery Type</h5>
+				<div class="row justify-content-center">
+					<div class="col-md-5 mb-3">
+						<div class="card delivery-option-card" onclick="selectDeliveryType('single')" style="cursor: pointer; transition: all 0.3s ease; border: 2px solid #2ed8b6;">
+							<div class="card-body" style="padding: 30px;">
+								<i class="feather icon-box" style="font-size: 48px; color: #2ed8b6;"></i>
+								<h4 class="mt-3 mb-2">Single Parcel</h4>
+								<p class="text-muted">Deliver one parcel to customer</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-5 mb-3">
+						<div class="card delivery-option-card" onclick="selectDeliveryType('multiple')" style="cursor: pointer; transition: all 0.3s ease; border: 2px solid #ff9f43;">
+							<div class="card-body" style="padding: 30px;">
+								<i class="feather icon-layers" style="font-size: 48px; color: #ff9f43;"></i>
+								<h4 class="mt-3 mb-2">Multiple Parcels</h4>
+								<p class="text-muted">Deliver multiple parcels to customer</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- QR Scanner Container - Hidden by default -->
+<div id="qr-scanner-container" style="display: none;">
+	
+	<div class="scanner-header">
+		<h3>📦 Scan Cargo QR Code 📦</h3>
+		<p>Position the QR code within the scanning box</p>
+	</div>
+	
+	<div id="qr-reader" style="position: relative;"></div>
+	
+	<div class="manual-entry-section">
+		<h5 class="text-center mb-3">Or Enter Cargo/Parcel Number</h5>
+		<div class="form-group">
+			<input type="text" class="form-control form-control-lg" id="manualCargoNumber" placeholder="Enter cargo/parcel number">
+		</div>
+		<button class="btn btn-primary btn-block" id="manualSearchBtn">
+			<i class="feather icon-search"></i> Search Cargo
+		</button>
+		<button class="btn btn-secondary btn-block mt-2" onclick="goBackToSelection()">
+			<i class="feather icon-arrow-left"></i> Back to Selection
+		</button>
+	</div>
+</div>
+
+<!-- Searching Overlay -->
+<div id="searchingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000;">
+	<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white;">
+		<div class="spinner-border text-light" role="status" style="width: 4rem; height: 4rem;">
+			<span class="sr-only">Searching...</span>
+		</div>
+		<h3 class="mt-4" style="color: #2ed8b6; font-weight: bold;">🔍 Searching for cargo...</h3>
+		<p style="color: #fff; margin-top: 10px;">Please wait while we fetch cargo details</p>
+	</div>
+</div>
+
+<!-- Cargo Details Confirmation Modal -->
+<div class="modal fade" id="deliveryModal" tabindex="-1" role="dialog" aria-labelledby="deliveryModalLabel" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #2ed8b6; color: white;">
+				<h5 class="modal-title" id="deliveryModalLabel">📋 Cargo Details - Confirm Delivery</h5>
+				<button type="button" class="close" aria-label="Close" style="color: white; opacity: 1;" onclick="cancelAndReload()">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<!-- Receipt-style cargo details -->
+				<div id="deliveryCargoDetails" style="font-family: 'Courier New', monospace; border: 2px dashed #333; padding: 20px; background: #f9f9f9;">
+					<!-- Content will be populated by JavaScript -->
+				</div>
+
+				<!-- Agent Information -->
+				<h6 class="text-warning mb-3 mt-4"><i class="fas fa-user-tie"></i> Agent Information</h6>
+				<div class="row">
+					<div class="col-md-6">
+						<div class="form-group">
+							<label for="agent_name">Agent Name <span class="text-danger">*</span></label>
+							<input type="text" class="form-control" id="agent_name" value="{{ request.user.get_full_name }}" required>
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div class="form-group">
+							<label for="delivery_date">Delivery Date <span class="text-danger">*</span></label>
+							<input type="datetime-local" class="form-control" id="delivery_date" required>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" onclick="cancelAndReload()">
+					<i class="feather icon-x"></i> Cancel
+				</button>
+				<button type="button" class="btn btn-success" id="confirmDeliveryBtn" onclick="confirmDelivery()">
+					<i class="fas fa-check"></i> Confirm Delivery
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Customer Pickup Details Modal -->
+<div class="modal fade" id="pickupDetailsModal" tabindex="-1" role="dialog" aria-labelledby="pickupDetailsModalLabel" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header bg-info text-white">
+				<h5 class="modal-title" id="pickupDetailsModalLabel">👤 Customer Pickup Details</h5>
+				<button type="button" class="close text-white" aria-label="Close" onclick="cancelAndReload()">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<p class="mb-3">Please enter the details of the person picking up the cargo:</p>
+				<div class="form-group">
+					<label for="pickup_customer_name">Full Name <span class="text-danger">*</span></label>
+					<input type="text" class="form-control" id="pickup_customer_name" placeholder="Enter customer name" required>
+				</div>
+				<div class="form-group">
+					<label for="pickup_customer_mobile">Mobile Number <span class="text-danger">*</span></label>
+					<input type="tel" class="form-control" id="pickup_customer_mobile" placeholder="Enter mobile number" required>
+				</div>
+				<div class="form-group">
+					<label for="pickup_customer_id">Anapotoka <span class="text-danger">*</span></label>
+					<input type="text" class="form-control" id="pickup_customer_id" placeholder="Andika unapoishi" required>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" onclick="cancelAndReload()">
+					<i class="feather icon-x"></i> Cancel
+				</button>
+				<button type="button" class="btn btn-primary" onclick="proceedToSignature()">
+					<i class="feather icon-arrow-right"></i> Next - Signature
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Signature Modal -->
+<div class="modal fade" id="signatureModal" tabindex="-1" role="dialog" aria-labelledby="signatureModalLabel" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog modal-xl" role="document" style="max-width: 98%; margin: 10px auto;">
+		<div class="modal-content" style="height: 95vh;">
+			<div class="modal-header bg-success text-white" style="padding: 10px 20px;">
+				<h5 class="modal-title" id="signatureModalLabel">✍️ Customer Signature</h5>
+				<button type="button" class="close text-white" aria-label="Close" onclick="cancelAndReload()">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body" style="padding: 15px; flex: 1; display: flex; flex-direction: column;">
+			<div class="text-center mb-2">
+				<h6>Please ask the customer to sign below:</h6>
+			</div>
+			<div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+				<div style="flex: 1; display: flex; flex-direction: column; padding: 10px; background: #f9f9f9; border-radius: 8px;">
+					<canvas id="signatureCanvas" width="1600" height="800" style="border: 3px solid #28a745; border-radius: 8px; touch-action: none; width: 100%; height: 100%; background: white; display: block;"></canvas>
+				</div>
+				<div class="text-center mt-3">
+					<button type="button" class="btn btn-warning btn-lg" onclick="clearSignature()">
+						<i class="fas fa-eraser"></i> Clear Signature
+					</button>
+				</div>
+			</div>
+		</div>
+			<div class="modal-footer" style="padding: 10px 20px;">
+				<button type="button" class="btn btn-secondary btn-lg" onclick="backToPickupDetails()">
+					<i class="feather icon-arrow-left"></i> Back
+				</button>
+				<button type="button" class="btn btn-success btn-lg" onclick="finalizeDelivery()">
+					<i class="fas fa-check"></i> Confirm Delivery
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTML5 QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+	let currentCargoId = null;
+	let canvas = null;
+	let ctx = null;
+	let isDrawing = false;
+	let lastX = 0;
+	let lastY = 0;
+	let html5QrCode = null;
+	let isScannerActive = false;
+	let deliveryType = null; // 'single' or 'multiple'
+
+	// Handle delivery type selection
+	function selectDeliveryType(type) {
+		deliveryType = type;
+		
+		// Hide selection screen
+		document.getElementById('deliveryTypeSelection').style.display = 'none';
+		
+		// Show QR scanner
+		document.getElementById('qr-scanner-container').style.display = 'block';
+		
+		// Start scanner
+		startQRScanner();
+	}
+
+	// Go back to delivery type selection
+	function goBackToSelection() {
+		stopQRScanner();
+		document.getElementById('qr-scanner-container').style.display = 'none';
+		document.getElementById('deliveryTypeSelection').style.display = 'block';
+		deliveryType = null;
+	}
+
+	// Start QR Scanner
+	function startQRScanner() {
+		html5QrCode = new Html5Qrcode("qr-reader");
+		
+		const onScanSuccess = (decodedText, decodedResult) => {
+			// Extract cargo number from QR code
+			let cargoNumber = decodedText;
+			if (decodedText.includes('CARGO:')) {
+				const parts = decodedText.split('|');
+				for (let part of parts) {
+					if (part.startsWith('CARGO:')) {
+						cargoNumber = part.replace('CARGO:', '').trim();
+						break;
+					}
+				}
+			}
+			
+			// Stop scanner and search cargo
+			stopQRScanner();
+			searchDeliveryCargo(cargoNumber);
+		};
+		
+		const onScanError = (errorMessage) => {
+			// Ignore scan errors (they happen frequently during scanning)
+		};
+		
+		const config = {
+			fps: 10,
+			qrbox: 250,
+			aspectRatio: 1.0
+		};
+		
+		html5QrCode.start(
+			{ facingMode: "environment" },
+			config,
+			onScanSuccess,
+			onScanError
+		).then(() => {
+			isScannerActive = true;
+		}).catch(err => {
+			console.error("Camera error:", err);
+			Swal.fire({
+				icon: 'error',
+				title: 'Camera Error',
+				text: 'Unable to access camera. Please check permissions and try again.',
+				confirmButtonText: 'OK'
+			});
+		});
+	}
+
+	// Stop QR Scanner
+	function stopQRScanner() {
+		if (html5QrCode && isScannerActive) {
+			html5QrCode.stop().then(() => {
+				isScannerActive = false;
+				html5QrCode = null;
+				document.getElementById('qr-scanner-container').style.display = 'none';
+			}).catch(err => {
+				console.error("Error stopping scanner:", err);
+			});
+		} else {
+			document.getElementById('qr-scanner-container').style.display = 'none';
+		}
+	}
+
+	// Manual search button
+	$('#manualSearchBtn').on('click', function() {
+		const cargoNumber = $('#manualCargoNumber').val().trim();
+		if (cargoNumber) {
+			stopQRScanner();
+			searchDeliveryCargo(cargoNumber);
+			$('#manualCargoNumber').val('');
+		}
+	});
+
+	// Search cargo function
+	function searchDeliveryCargo(cargoNumber) {
+		if (!cargoNumber) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Cargo Number Required',
+				text: 'Please enter or scan a cargo number',
+				confirmButtonText: 'OK'
+			});
+			return;
+		}
+		
+		// Show searching overlay
+		document.getElementById('searchingOverlay').style.display = 'block';
+		
+		// Add a small delay to ensure the overlay is visible
+		setTimeout(() => {
+			// Fetch cargo details
+			fetch(`/branch-agent/api/cargo/search/?cargo_number=${cargoNumber}`)
+				.then(response => response.json())
+				.then(data => {
+					document.getElementById('searchingOverlay').style.display = 'none';
+					
+					if (data.success && data.cargo) {
+						currentCargoId = data.cargo.id;
+						displayDeliveryCargoDetails(data.cargo);
+						$('#deliveryModal').modal('show');
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Cargo Not Found',
+							text: data.message || 'No cargo found with this number',
+							confirmButtonText: 'OK'
+						}).then(() => {
+							// Restart scanner after error
+							document.getElementById('qr-scanner-container').style.display = 'block';
+							startQRScanner();
+						});
+					}
+				})
+				.catch(error => {
+					document.getElementById('searchingOverlay').style.display = 'none';
+					console.error('Error searching cargo:', error);
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'An error occurred while searching for cargo',
+						confirmButtonText: 'OK'
+					}).then(() => {
+						// Restart scanner after error
+						document.getElementById('qr-scanner-container').style.display = 'block';
+						startQRScanner();
+					});
+				});
+		}, 100);
+	}
+
+	// Display cargo details in receipt style
+	function displayDeliveryCargoDetails(cargo) {
+		const now = new Date();
+		const dateStr = now.toLocaleDateString('en-GB');
+		const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+		
+		const html = `
+			<div style="font-size: 16px; line-height: 1.8; color: #000;">
+				<p style="margin: 8px 0;"><strong style="font-size: 17px;">Receipt No:</strong> <span style="font-weight: 600;">${cargo.receipt_number || 'N/A'}</span></p>
+				<p style="margin: 8px 0;"><strong style="font-size: 17px;">Cargo No:</strong> <span style="font-weight: 600;">${cargo.cargo_number}</span></p>
+				<p style="margin: 8px 0;"><strong style="font-size: 17px;">Date:</strong> <span style="font-weight: 600;">${dateStr} ${timeStr}</span></p>
+				
+				<div style="margin-top: 20px; margin-bottom: 15px;">
+					<p style="margin: 10px 0; font-size: 18px; font-weight: bold; text-decoration: underline;">SENDER INFORMATION</p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Name:</strong> <span style="font-weight: 600;">${cargo.sender_name}</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Phone:</strong> <span style="font-weight: 600;">${cargo.sender_phone}</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Branch:</strong> <span style="font-weight: 600;">${cargo.origin}</span></p>
+				</div>
+				
+				<div style="margin-top: 20px; margin-bottom: 15px;">
+					<p style="margin: 10px 0; font-size: 18px; font-weight: bold; text-decoration: underline;">RECEIVER INFORMATION</p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Name:</strong> <span style="font-weight: 600;">${cargo.receiver_name}</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Phone:</strong> <span style="font-weight: 600;">${cargo.receiver_phone}</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Branch:</strong> <span style="font-weight: 600;">${cargo.destination}</span></p>
+				</div>
+				
+				<div style="margin-top: 20px; margin-bottom: 15px;">
+					<p style="margin: 10px 0; font-size: 18px; font-weight: bold; text-decoration: underline;">CARGO/PARCEL DETAILS</p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Description:</strong> <span style="font-weight: 600;">${cargo.description}</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Quantity:</strong> <span style="font-weight: 600;">${cargo.quantity}</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Weight:</strong> <span style="font-weight: 600;">${cargo.weight} kg</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Value:</strong> <span style="font-weight: 600;">TZS ${cargo.cargo_value ? parseFloat(cargo.cargo_value).toLocaleString() : 'N/A'}</span></p>
+					<p style="margin: 6px 0; margin-left: 10px;"><strong>Shipping Fee:</strong> <span style="font-weight: 600;">TZS ${cargo.shipping_fee ? parseFloat(cargo.shipping_fee).toLocaleString() : 'N/A'}</span></p>
+				</div>
+			</div>
+		`;
+		document.getElementById('deliveryCargoDetails').innerHTML = html;
+	}
+
+	// Initialize signature canvas when signature modal is shown
+	$('#signatureModal').on('shown.bs.modal', function () {
+		canvas = document.getElementById('signatureCanvas');
+		ctx = canvas.getContext('2d');
+		ctx.strokeStyle = '#000';
+		ctx.lineWidth = 2;
+		ctx.lineCap = 'round';
+		
+		// Clear any previous signature
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		
+		// Mouse events
+		canvas.addEventListener('mousedown', startDrawing);
+		canvas.addEventListener('mousemove', draw);
+		canvas.addEventListener('mouseup', stopDrawing);
+		canvas.addEventListener('mouseout', stopDrawing);
+		
+		// Touch events for mobile
+		canvas.addEventListener('touchstart', handleTouchStart);
+		canvas.addEventListener('touchmove', handleTouchMove);
+		canvas.addEventListener('touchend', stopDrawing);
+	});
+	
+	// Set current date/time when delivery modal is shown
+	$('#deliveryModal').on('shown.bs.modal', function () {
+		const now = new Date();
+		const dateTimeLocal = now.toISOString().slice(0, 16);
+		document.getElementById('delivery_date').value = dateTimeLocal;
+	});
+
+	// Signature drawing functions
+	function startDrawing(e) {
+		isDrawing = true;
+		const rect = canvas.getBoundingClientRect();
+		lastX = e.clientX - rect.left;
+		lastY = e.clientY - rect.top;
+	}
+
+	function draw(e) {
+		if (!isDrawing) return;
+		const rect = canvas.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const y = e.clientY - rect.top;
+		
+		ctx.beginPath();
+		ctx.moveTo(lastX, lastY);
+		ctx.lineTo(x, y);
+		ctx.stroke();
+		
+		lastX = x;
+		lastY = y;
+	}
+
+	function stopDrawing() {
+		isDrawing = false;
+	}
+
+	function handleTouchStart(e) {
+		e.preventDefault();
+		const touch = e.touches[0];
+		const rect = canvas.getBoundingClientRect();
+		lastX = touch.clientX - rect.left;
+		lastY = touch.clientY - rect.top;
+		isDrawing = true;
+	}
+
+	function handleTouchMove(e) {
+		e.preventDefault();
+		if (!isDrawing) return;
+		const touch = e.touches[0];
+		const rect = canvas.getBoundingClientRect();
+		const x = touch.clientX - rect.left;
+		const y = touch.clientY - rect.top;
+		
+		ctx.beginPath();
+		ctx.moveTo(lastX, lastY);
+		ctx.lineTo(x, y);
+		ctx.stroke();
+		
+		lastX = x;
+		lastY = y;
+	}
+
+	function clearSignature() {
+		if (canvas && ctx) {
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+		}
+	}
+
+	// Go back to dashboard
+	function goBackToDashboard() {
+		window.location.href = "{% url 'branchagent_dashboard' %}";
+	}
+
+	// Cancel and reload customer delivery page
+	function cancelAndReload() {
+		window.location.href = "{% url 'customer_delivery' %}";
+	}
+
+	// Confirm delivery - opens pickup details modal
+	function confirmDelivery() {
+		const agentName = document.getElementById('agent_name').value.trim();
+		const deliveryDate = document.getElementById('delivery_date').value;
+		
+		// Validate inputs
+		if (!agentName || !deliveryDate) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Missing Information',
+				text: 'Please fill in agent name and delivery date',
+				confirmButtonText: 'OK'
+			});
+			return;
+		}
+		
+		// Hide delivery modal and show pickup details modal
+		$('#deliveryModal').modal('hide');
+		$('#pickupDetailsModal').modal('show');
+	}
+	
+	// Proceed to signature after pickup details
+	function proceedToSignature() {
+		const customerName = document.getElementById('pickup_customer_name').value.trim();
+		const customerMobile = document.getElementById('pickup_customer_mobile').value.trim();
+		const customerId = document.getElementById('pickup_customer_id').value.trim();
+		
+		// Validate pickup details
+		if (!customerName || !customerMobile || !customerId) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Missing Information',
+				text: 'Please fill in all customer pickup details',
+				confirmButtonText: 'OK'
+			});
+			return;
+		}
+		
+		// Hide pickup details modal and show signature modal
+		$('#pickupDetailsModal').modal('hide');
+		$('#signatureModal').modal('show');
+	}
+	
+	// Back to pickup details from signature
+	function backToPickupDetails() {
+		$('#signatureModal').modal('hide');
+		$('#pickupDetailsModal').modal('show');
+	}
+	
+	// Finalize delivery after signature
+	function finalizeDelivery() {
+		// Check if signature is provided
+		const signatureData = canvas.toDataURL();
+		const isSignatureEmpty = !ctx.getImageData(0, 0, canvas.width, canvas.height).data.some(channel => channel !== 0);
+		
+		if (isSignatureEmpty) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Signature Required',
+				text: 'Please ask the customer to provide their signature',
+				confirmButtonText: 'OK'
+			});
+			return;
+		}
+		
+		// Show confirmation
+		Swal.fire({
+			title: 'Confirm Delivery',
+			text: 'Are you sure you want to mark this cargo as delivered?',
+			icon: 'question',
+			showCancelButton: true,
+			confirmButtonText: 'Yes, Confirm',
+			cancelButtonText: 'Cancel'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				// Show loading
+				Swal.fire({
+					title: 'Processing...',
+					text: 'Confirming delivery, please wait',
+					allowOutsideClick: false,
+					didOpen: () => {
+						Swal.showLoading();
+					}
+				});
+				
+				// Get agent and pickup details
+				const agentName = document.getElementById('agent_name').value.trim();
+				const deliveryDate = document.getElementById('delivery_date').value;
+				const customerName = document.getElementById('pickup_customer_name').value.trim();
+				const customerMobile = document.getElementById('pickup_customer_mobile').value.trim();
+				const customerId = document.getElementById('pickup_customer_id').value.trim();
+				
+				// Prepare form data
+				const formData = new FormData();
+				formData.append('cargo_id', currentCargoId);
+				formData.append('agent_name', agentName);
+				formData.append('delivery_date', deliveryDate);
+				formData.append('customer_name', customerName);
+				formData.append('customer_mobile', customerMobile);
+				formData.append('customer_id', customerId);
+				formData.append('signature', signatureData);
+				formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+				
+				// Submit delivery confirmation
+				fetch('/branch-agent/api/cargo/deliver/', {
+					method: 'POST',
+					body: formData,
+					headers: {
+						'X-Requested-With': 'XMLHttpRequest'
+					}
+				})
+				.then(response => response.json())
+				.then(data => {
+					if (data.success) {
+						Swal.fire({
+							icon: 'success',
+							title: 'Delivery Confirmed!',
+							text: data.message || 'Cargo has been successfully delivered to customer',
+							confirmButtonText: 'OK'
+						}).then(() => {
+							window.location.href = "{% url 'branchagent_dashboard' %}";
+						});
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: data.message || 'Failed to confirm delivery',
+							confirmButtonText: 'OK'
+						});
+					}
+				})
+				.catch(error => {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'An error occurred while confirming delivery',
+						confirmButtonText: 'OK'
+					});
+				});
+			}
+		});
+	}
+</script>
+{% endblock %}

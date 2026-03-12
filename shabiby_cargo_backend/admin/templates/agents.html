@@ -1,0 +1,510 @@
+{% extends 'admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}📦 Shabiby Cargo - Agents{% endblock %}
+
+{% block extra_css %}
+<style>
+	/* Custom styles for agents page */
+	.badge-role {
+		padding: 5px 12px;
+		border-radius: 12px;
+		font-size: 11px;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+	.badge-admin { background: #667eea; color: white; }
+	.badge-driver { background: #f6ad55; color: white; }
+	.badge-conductor { background: #48bb78; color: white; }
+	.badge-pickup { background: #4299e1; color: white; }
+	.badge-branch_agent { background: #9f7aea; color: white; }
+
+	.action-btn {
+		padding: 5px 10px;
+		margin: 0 2px;
+		border-radius: 6px;
+		font-size: 12px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- [ breadcrumb ] start -->
+<div class="page-header">
+	<div class="page-block">
+		<div class="row align-items-center">
+			<div class="col-md-12">
+				<div class="page-header-title">
+					<h5 class="m-b-10">Agents Management</h5>
+				</div>
+				<ul class="breadcrumb">
+					<li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}"><i class="feather icon-home"></i></a></li>
+					<li class="breadcrumb-item"><a href="#!">Agents</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- [ breadcrumb ] end -->
+
+<!-- [ Main Content ] start -->
+<div class="row">
+								<!-- Agents Table -->
+								<div class="col-xl-12">
+									<div class="card">
+										<div class="card-header">
+											<h5>All Agents</h5>
+											<button class="btn btn-primary btn-sm float-right" data-toggle="modal" data-target="#addAgentModal">
+												<i class="feather icon-plus"></i> Add New Agent
+											</button>
+										</div>
+										<div class="card-body table-border-style">
+											<div class="table-responsive">
+												<table class="table table-hover" id="agentsTable">
+													<thead>
+														<tr>
+															<th>#</th>
+															<th>First Name</th>
+															<th>Last Name</th>
+															<th>Username</th>
+															<th>Office (Branch)</th>
+															<th>Role</th>
+															<th>Actions</th>
+														</tr>
+													</thead>
+													<tbody>
+														{% for agent in agents %}
+														<tr>
+															<td>{{ forloop.counter }}</td>
+															<td>{{ agent.user.first_name }}</td>
+															<td>{{ agent.user.last_name }}</td>
+															<td>{{ agent.user.username }}</td>
+															<td>{{ agent.office.location|default:"No Office" }}</td>
+															<td><span class="badge-role badge-{{ agent.user.role }}">{{ agent.user.get_role_display }}</span></td>
+															<td>
+																<button class="btn btn-info btn-sm action-btn" onclick="editAgent({{ agent.id }})">
+																	<i class="feather icon-edit"></i> Edit
+																</button>
+																<button class="btn btn-danger btn-sm action-btn" onclick="deleteAgent({{ agent.id }})">
+																	<i class="feather icon-trash-2"></i> Delete
+																</button>
+															</td>
+														</tr>
+														{% empty %}
+														<tr>
+															<td colspan="7" class="text-center">No agents found. Click "Add New Agent" to create one.</td>
+														</tr>
+														{% endfor %}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<!-- [ Main Content ] end -->
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- [ Main Content ] end -->
+
+	<!-- Add Agent Modal -->
+	<div class="modal fade" id="addAgentModal" tabindex="-1" role="dialog" aria-labelledby="addAgentModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="addAgentModalLabel">
+						<i class="feather icon-user-plus"></i> Add New Agent
+					</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<form id="addAgentForm">
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="firstName">First Name <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="firstName" name="firstName" required>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="lastName">Last Name <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="lastName" name="lastName" required>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="username">Username <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="username" name="username" required>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="email">Email <span class="text-danger">*</span></label>
+									<input type="email" class="form-control" id="email" name="email" required>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="mobileNumber">Mobile Number</label>
+									<input type="text" class="form-control" id="mobileNumber" name="mobileNumber" placeholder="+255...">
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="office">Office (Branch)</label>
+									<select class="form-control" id="office" name="office">
+										<option value="">Select Branch (Optional)</option>
+										{% for center in cargo_centers %}
+										<option value="{{ center.id }}">{{ center.center_name }} - {{ center.location }}</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="role">Role <span class="text-danger">*</span></label>
+									<select class="form-control" id="role" name="role" required>
+										<option value="">Select Role</option>
+										<option value="admin">Admin</option>
+										<option value="driver">Driver</option>
+										<option value="conductor">Conductor</option>
+										<option value="pickup">Pickup (Delivery)</option>
+										<option value="branch_agent">Branch Agent</option>
+									</select>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="password">Password <span class="text-danger">*</span></label>
+									<input type="password" class="form-control" id="password" name="password" required>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-primary" onclick="saveAgent()">
+						<i class="feather icon-save"></i> Save Agent
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Edit Agent Modal -->
+	<div class="modal fade" id="editAgentModal" tabindex="-1" role="dialog" aria-labelledby="editAgentModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="editAgentModalLabel">
+						<i class="feather icon-edit"></i> Edit Agent
+					</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<form id="editAgentForm">
+						<input type="hidden" id="editAgentId" name="agentId">
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editFirstName">First Name <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="editFirstName" name="firstName" required>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editLastName">Last Name <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="editLastName" name="lastName" required>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editUsername">Username <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="editUsername" name="username" required>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editEmail">Email <span class="text-danger">*</span></label>
+									<input type="email" class="form-control" id="editEmail" name="email" required>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editMobileNumber">Mobile Number</label>
+									<input type="text" class="form-control" id="editMobileNumber" name="mobileNumber" placeholder="+255...">
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editOffice">Office (Branch)</label>
+									<select class="form-control" id="editOffice" name="office">
+										<option value="">Select Branch (Optional)</option>
+										{% for center in cargo_centers %}
+										<option value="{{ center.id }}">{{ center.center_name }} - {{ center.location }}</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editRole">Role <span class="text-danger">*</span></label>
+									<select class="form-control" id="editRole" name="role" required>
+										<option value="">Select Role</option>
+										<option value="admin">Admin</option>
+										<option value="driver">Driver</option>
+										<option value="conductor">Conductor</option>
+										<option value="pickup">Pickup (Delivery)</option>
+										<option value="branch_agent">Branch Agent</option>
+									</select>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editPassword">New Password (leave blank to keep current)</label>
+									<input type="password" class="form-control" id="editPassword" name="password">
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-primary" onclick="updateAgent()">
+						<i class="feather icon-save"></i> Update Agent
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- [ Main Content ] end -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	// Save new agent
+	function saveAgent() {
+		const form = document.getElementById('addAgentForm');
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
+
+		const formData = new FormData(form);
+		const data = Object.fromEntries(formData);
+
+		// Send data to backend API
+		fetch('/api/agents/create/', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data)
+		})
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				Swal.fire({
+					icon: 'success',
+					title: 'Success!',
+					text: 'Agent added successfully!',
+					confirmButtonColor: '#4099ff'
+				}).then(() => {
+					$('#addAgentModal').modal('hide');
+					form.reset();
+					location.reload();
+				});
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to add agent. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Edit agent
+	function editAgent(agentId) {
+		// Fetch agent data from backend
+		fetch(`/api/agents/${agentId}/`)
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				const agent = result.agent;
+				document.getElementById('editAgentId').value = agentId;
+				document.getElementById('editFirstName').value = agent.firstName;
+				document.getElementById('editLastName').value = agent.lastName;
+				document.getElementById('editUsername').value = agent.username;
+				document.getElementById('editEmail').value = agent.email;
+				document.getElementById('editMobileNumber').value = agent.mobileNumber;
+				document.getElementById('editOffice').value = agent.office;
+				document.getElementById('editRole').value = agent.role;
+
+				$('#editAgentModal').modal('show');
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to fetch agent details. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Update agent
+	function updateAgent() {
+		const form = document.getElementById('editAgentForm');
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
+
+		const formData = new FormData(form);
+		const data = Object.fromEntries(formData);
+		const agentId = data.agentId;
+
+		// Send update request to backend API
+		fetch(`/api/agents/${agentId}/update/`, {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data)
+		})
+		.then(response => response.json())
+		.then(result => {
+			if (result.success) {
+				Swal.fire({
+					icon: 'success',
+					title: 'Success!',
+					text: 'Agent updated successfully!',
+					confirmButtonColor: '#4099ff'
+				}).then(() => {
+					$('#editAgentModal').modal('hide');
+					location.reload();
+				});
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: result.message,
+					confirmButtonColor: '#4099ff'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('Error:', error);
+			Swal.fire({
+				icon: 'error',
+				title: 'Error!',
+				text: 'Failed to update agent. Please try again.',
+				confirmButtonColor: '#4099ff'
+			});
+		});
+	}
+
+	// Delete agent
+	function deleteAgent(agentId) {
+		Swal.fire({
+			title: 'Are you sure?',
+			text: "You won't be able to revert this!",
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#d33',
+			cancelButtonColor: '#3085d6',
+			confirmButtonText: 'Yes, delete it!'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				// Send delete request to backend API
+				fetch(`/api/agents/${agentId}/delete/`, {
+					method: 'DELETE',
+				})
+				.then(response => response.json())
+				.then(result => {
+					if (result.success) {
+						Swal.fire({
+							icon: 'success',
+							title: 'Deleted!',
+							text: 'Agent deleted successfully!',
+							confirmButtonColor: '#4099ff'
+						}).then(() => {
+							location.reload();
+						});
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error!',
+							text: result.message,
+							confirmButtonColor: '#4099ff'
+						});
+					}
+				})
+				.catch(error => {
+					console.error('Error:', error);
+					Swal.fire({
+						icon: 'error',
+						title: 'Error!',
+						text: 'Failed to delete agent. Please try again.',
+						confirmButtonColor: '#4099ff'
+					});
+				});
+			}
+		});
+	}
+
+	// Search functionality
+	document.getElementById('m-search').addEventListener('input', function(e) {
+		const searchTerm = e.target.value.toLowerCase();
+		const rows = document.querySelectorAll('#agentsTable tbody tr');
+
+		rows.forEach(row => {
+			const text = row.textContent.toLowerCase();
+			row.style.display = text.includes(searchTerm) ? '' : 'none';
+		});
+	});
+</script>
+{% endblock %}

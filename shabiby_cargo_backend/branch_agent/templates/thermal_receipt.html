@@ -1,0 +1,271 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargo Receipt - {{ cargo.receipt_number }}</title>
+    <style>
+        @page {
+            size: 80mm 297mm;
+            margin: 0;
+            margin-left: 0;
+            margin-right: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        
+        html, body {
+            max-width: 80mm;
+            margin: 0 auto;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 80mm;
+            max-width: 80mm;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            padding: 5mm;
+            background: white;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 10px;
+        }
+        
+        .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .company-info {
+            font-size: 9px;
+            margin-bottom: 2px;
+        }
+        
+        .receipt-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .receipt-info {
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 8px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            font-size: 10px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            width: 40%;
+        }
+        
+        .info-value {
+            width: 60%;
+            text-align: right;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            font-size: 11px;
+            margin-top: 8px;
+            margin-bottom: 5px;
+            text-decoration: underline;
+        }
+        
+        .party-info {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #000;
+        }
+        
+        .cargo-details {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #000;
+        }
+        
+        .qr-section {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-top: 2px dashed #000;
+            border-bottom: 2px dashed #000;
+        }
+        
+        .qr-code {
+            margin: 10px auto;
+            display: block;
+        }
+        
+        .qr-label {
+            font-size: 9px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 9px;
+            border-top: 1px dashed #000;
+            padding-top: 8px;
+        }
+        
+        .thank-you {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .contact-info {
+            margin-top: 5px;
+        }
+        
+        @media print {
+            html, body {
+                width: 80mm;
+                max-width: 80mm;
+                margin: 0;
+                padding: 0;
+            }
+            
+            body {
+                padding: 5mm;
+            }
+            
+            .no-print {
+                display: none;
+            }
+        }
+        
+        @media screen {
+            html {
+                background: #f0f0f0;
+                padding: 20px 0;
+            }
+            
+            body {
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-header">
+        <div class="company-name">📦 SHABIBY CARGO 📦</div>
+        <div class="company-info">Cargo & Parcel Delivery Services</div>
+        <div class="company-info">Tel: +255 767 463 987</div>
+        <div class="receipt-title">CARGO/PARCEL RECEIPT</div>
+    </div>
+    
+    <div class="receipt-info">
+        <div class="info-row">
+            <span class="info-label">Receipt No:</span>
+            <span class="info-value">{{ cargo.receipt_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Cargo No:</span>
+            <span class="info-value">{{ cargo.cargo_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Date:</span>
+            <span class="info-value">{{ cargo.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+      
+    </div>
+    
+    <div class="section-title">SENDER INFORMATION</div>
+    <div class="party-info">
+        <div class="info-row">
+            <span class="info-label">Name:</span>
+            <span class="info-value">{{ cargo.sender.full_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Phone:</span>
+            <span class="info-value">{{ cargo.sender.mobile_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Branch:</span>
+            <span class="info-value">{{ cargo.origin_branch.location }}</span>
+        </div>
+    </div>
+    
+    <div class="section-title">RECEIVER INFORMATION</div>
+    <div class="party-info">
+        <div class="info-row">
+            <span class="info-label">Name:</span>
+            <span class="info-value">{{ cargo.receiver.full_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Phone:</span>
+            <span class="info-value">{{ cargo.receiver.mobile_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Branch:</span>
+            <span class="info-value">{{ cargo.destination_branch.location }}</span>
+        </div>
+    </div>
+    
+    <div class="section-title">CARGO/PARCEL DETAILS</div>
+    <div class="cargo-details">
+        <div class="info-row">
+            <span class="info-label">Description:</span>
+            <span class="info-value">{{ cargo.cargo_description|truncatewords:5 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Quantity:</span>
+            <span class="info-value">{{ cargo.quantity }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Weight:</span>
+            <span class="info-value">{{ cargo.weight }} kg</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Value:</span>
+            <span class="info-value">TZS {{ cargo.cargo_value|floatformat:0|intcomma }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Shipping Fee:</span>
+            <span class="info-value">TZS {{ cargo.shipping_amount|floatformat:0|intcomma }}</span>
+        </div>
+    </div>
+    
+    <div class="qr-section">
+        <div class="qr-label">SCAN FOR TRACKING</div>
+        <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="qr-code" width="150" height="150">
+        <div class="qr-label">{{ cargo.cargo_number }}</div>
+    </div>
+    
+    <div class="footer">
+        <div class="thank-you">THANK YOU FOR CHOOSING SHABIBY CARGO!</div>
+        <div class="contact-info">For inquiries: info@shabibycargo.com</div>
+        <div class="contact-info">Track your cargo online</div>
+        <div style="margin-top: 8px; font-size: 8px;">
+            Printed: {{ now|date:"d/m/Y H:i:s" }}
+        </div>
+    </div>
+    
+
+</body>
+</html>
