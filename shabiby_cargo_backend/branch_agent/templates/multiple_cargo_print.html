@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Grouped Cargo Shipment - {{ cargo_group.group_id }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            /* Hide browser print headers/footers */
+            @page {
+                margin: 15mm;
+            }
+            
+            /* Ensure table borders print */
+            table, th, td {
+                border: 1px solid #000 !important;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+        }
+        
+        .print-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #000;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            color: #000;
+        }
+        
+        .header .subtitle {
+            font-size: 14px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 15px;
+        }
+        
+        .qr-code-box {
+            display: inline-block;
+            border: 2px solid #000;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .qr-code-box img {
+            width: 120px;
+            height: 120px;
+            display: block;
+        }
+        
+        .group-id-text {
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 5px;
+            word-wrap: break-word;
+        }
+        
+        .info-section {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        
+        .info-section h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #000;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+        }
+        
+        .info-grid {
+            display: table;
+            width: 100%;
+        }
+        
+        .info-item {
+            display: table-cell;
+            padding: 5px 10px;
+            width: 25%;
+        }
+        
+        .info-item strong {
+            display: block;
+            font-size: 10px;
+            color: #000;
+            margin-bottom: 2px;
+        }
+        
+        .info-item span {
+            display: block;
+            font-size: 12px;
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .cargo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .cargo-table thead {
+            background: #000;
+            color: white;
+        }
+        
+        .cargo-table th {
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: bold;
+            border: 1px solid #000;
+        }
+        
+        .cargo-table td {
+            padding: 6px 5px;
+            border: 1px solid #000;
+            font-size: 10px;
+        }
+        
+        .cargo-table tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .cargo-table tbody tr:hover {
+            background: #fff3cd;
+        }
+        
+        .cargo-number {
+            font-weight: bold;
+            color: #000;
+            font-size: 11px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 9px;
+            color: #000;
+            border-top: 2px solid #000;
+            padding-top: 15px;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+        
+        .footer-qr {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .footer-qr .qr-code-box {
+            display: inline-block;
+            border: 2px solid #000;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .footer-qr .qr-code-box img {
+            width: 100px;
+            height: 100px;
+            display: block;
+        }
+        
+        .footer-qr .group-id-text {
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 8px;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .print-button:hover {
+            background: #218838;
+        }
+        
+        .back-button {
+            position: fixed;
+            top: 20px;
+            right: 180px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .back-button:hover {
+            background: #5a6268;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            color: #000;
+            margin: 15px 0 8px 0;
+            font-weight: bold;
+            border-left: 3px solid #000;
+            padding-left: 8px;
+        }
+    </style>
+</head>
+<body>
+ 
+    <button class="print-button no-print" onclick="window.print()">
+        🖨️ Print Document
+    </button>
+    
+    <div class="print-container">
+        <!-- Header with Company Info -->
+        <div class="header">
+            <h1>📦 SHABIBY CARGO 📦</h1>
+            <p>Cargo & Parcel Delivery Services</p>
+            <p>Tel: +255 767 463 987</p>
+            <p class="subtitle">GROUPED CARGO SHIPMENT</p>
+            <p style="font-size: 11px; margin-top: 5px;">Multiple Cargo Onboarding Document</p>
+        </div>
+        
+        
+        
+        <!-- Cargo List Section -->
+        <div class="section-title">📦 CARGO LIST ({{ cargos|length }} Items)</div>
+        
+        <table class="cargo-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 15%;">Cargo/Parcel No.</th>
+                    <th style="width: 12%;">Origin</th>
+                    <th style="width: 12%;">Destination</th>
+                    <th style="width: 8%;">Quantity</th>
+                    <th style="width: 20%;">Description</th>
+                    <th style="width: 13%;">Registered By</th>
+                    <th style="width: 15%;">Register Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cargo in cargos %}
+                <tr>
+                    <td style="text-align: center;">{{ forloop.counter }}</td>
+                    <td><span class="cargo-number">{{ cargo.cargo_number }}</span></td>
+                    <td>{{ cargo.origin_branch.location }}</td>
+                    <td>{{ cargo.destination_branch.location }}</td>
+                    <td style="text-align: center;">{{ cargo.quantity }}</td>
+                    <td>{{ cargo.cargo_description|truncatewords:8 }}</td>
+                    <td>
+                        {% if cargo.registered_by %}
+                            {{ cargo.registered_by.user.get_full_name }}
+                        {% else %}
+                            <span style="color: #999;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ cargo.created_at|date:"d M Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: #999;">No cargos in this group</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+     
+        
+        <!-- Footer with QR Code -->
+        <div class="footer">
+            <div class="footer-qr">
+                <div class="qr-code-box">
+                    <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+                </div>
+                <div class="group-id-text">{{ cargo_group.group_id }}</div>
+            </div>
+            <p style="margin-top: 15px;"><strong>SHABIBY CARGO</strong> - Multiple Cargo Onboarding System</p>
+            <p>Document ID: {{ cargo_group.group_id }} | Generated: {{ generated_date }} | Status: {{ cargo_group.status|upper }}</p>
+            <p style="font-size: 10px; margin-top: 10px;">This document is computer-generated and serves as proof of cargo grouping for batch processing.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -316,6 +316,17 @@
 		const formData = new FormData(form);
 		const data = Object.fromEntries(formData);
 
+		// Show loading animation
+		Swal.fire({
+			title: 'Adding Agent...',
+			html: 'Please wait while we add the new agent.',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
+
 		// Send data to backend API
 		fetch('/api/agents/create/', {
 			method: 'POST',
@@ -326,6 +337,7 @@
 		})
 		.then(response => response.json())
 		.then(result => {
+			Swal.close();
 			if (result.success) {
 				Swal.fire({
 					icon: 'success',
@@ -347,6 +359,7 @@
 			}
 		})
 		.catch(error => {
+			Swal.close();
 			console.error('Error:', error);
 			Swal.fire({
 				icon: 'error',
@@ -407,6 +420,17 @@
 		const data = Object.fromEntries(formData);
 		const agentId = data.agentId;
 
+		// Show loading animation
+		Swal.fire({
+			title: 'Updating Agent...',
+			html: 'Please wait while we update the agent.',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
+
 		// Send update request to backend API
 		fetch(`/api/agents/${agentId}/update/`, {
 			method: 'PUT',
@@ -417,6 +441,7 @@
 		})
 		.then(response => response.json())
 		.then(result => {
+			Swal.close();
 			if (result.success) {
 				Swal.fire({
 					icon: 'success',
@@ -437,6 +462,7 @@
 			}
 		})
 		.catch(error => {
+			Swal.close();
 			console.error('Error:', error);
 			Swal.fire({
 				icon: 'error',

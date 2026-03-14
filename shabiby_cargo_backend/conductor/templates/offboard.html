@@ -166,7 +166,7 @@
 					
 					<!-- Multiple Cargo Offboarding -->
 					<div class="col-md-6 mb-3">
-						<button class="btn btn-success btn-block btn-lg" data-toggle="modal" data-target="#multipleOffboardModal" style="padding: 30px; border-radius: 10px;">
+						<button class="btn btn-success btn-block btn-lg" id="startMultipleScannerBtn" style="padding: 30px; border-radius: 10px;">
 							<i class="fas fa-boxes fa-3x mb-3"></i>
 							<h5 class="mb-0 text-white">Offboard Multiple Cargos</h5>
 						</button>
@@ -179,6 +179,7 @@
 
 <!-- QR Scanner Container -->
 <div id="qr-scanner-container">
+	<button class="close-scanner" onclick="stopScanner(); $('#qr-scanner-container').hide();">×</button>
 	
 	<div class="scanner-header">
 		<h3>📦 Scan Cargo QR Code 📦</h3>
@@ -188,7 +189,7 @@
 	<div id="qr-reader" style="position: relative;"></div>
 	
 	<div class="manual-entry-section">
-		<h5 class="text-center mb-3">Or Enter Cargo/Parcel Number</h5>
+		<h5 class="text-center mb-3" id="manualEntryTitle">Or Enter Cargo/Parcel Number</h5>
 		<div class="form-group">
 			<input type="text" class="form-control form-control-lg" id="manualCargoNumber" placeholder="Enter cargo/parcel number">
 		</div>
@@ -233,53 +234,52 @@
 	</div>
 </div>
 
-<!-- Multiple Offboard Modal -->
-<div class="modal fade" id="multipleOffboardModal" tabindex="-1" role="dialog" aria-labelledby="multipleOffboardModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg" role="document">
+<!-- Multiple Cargo Details Modal -->
+<div class="modal fade" id="multipleCargoDetailsModal" tabindex="-1" role="dialog" aria-labelledby="multipleCargoDetailsModalLabel" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog modal-xl" role="document">
 		<div class="modal-content">
-			<div class="modal-header" style="background: #2ed8b6; color: white;">
-				<h5 class="modal-title" id="multipleOffboardModalLabel">📦 Offboard Multiple Cargos</h5>
+			<div class="modal-header" style="background: #F37021; color: white;">
+				<h5 class="modal-title" id="multipleCargoDetailsModalLabel">📦 Cargo Group Details - <span id="groupIdDisplay"></span></h5>
 				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
 					<span aria-hidden="true">&times;</span>
 				</button>
 			</div>
 			<div class="modal-body">
-				<div class="alert alert-info">
-					<i class="feather icon-info"></i> <strong>Scan multiple cargos:</strong> Scan each cargo's QR code. They will be added to the list below.
+				<div class="alert alert-warning">
+					<i class="feather icon-check-circle"></i> <strong><span id="totalCargosCount">0</span> cargos</strong> found in this group - Ready to offboard
 				</div>
 				
-				<div class="form-group">
-					<label for="multipleCargoNumber">Scan Cargo Number</label>
-					<input type="text" class="form-control form-control-lg" id="multipleCargoNumber" placeholder="Scan cargo number">
-				</div>
-				
-				<h6 class="mt-4 mb-3">Scanned Cargos (<span id="scannedCount">0</span>)</h6>
-				<div class="table-responsive">
-					<table class="table table-bordered" id="scannedCargosTable">
-						<thead class="thead-light">
+				<!-- Cargo Details Table -->
+				<h6 class="mb-3" style="color: #000; font-weight: bold;">
+					<i class="fas fa-list"></i> Cargo Details:
+				</h6>
+				<div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+					<table class="table table-bordered table-hover">
+						<thead style="background: #F37021; color: white; position: sticky; top: 0;">
 							<tr>
 								<th>#</th>
 								<th>Cargo Number</th>
+								<th>Description</th>
+								<th>Quantity</th>
+								<th>From</th>
+								<th>To</th>
 								<th>Sender</th>
-								<th>Destination</th>
-								<th>Action</th>
+								<th>Receiver</th>
 							</tr>
 						</thead>
-						<tbody id="scannedCargosBody">
-							<tr id="noScannedCargos">
-								<td colspan="5" class="text-center text-muted">No cargos scanned yet</td>
-							</tr>
+						<tbody id="cargoDetailsTableBody">
+							<!-- Will be populated by JavaScript -->
 						</tbody>
 					</table>
 				</div>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-				<button type="button" class="btn btn-success btn-lg" id="confirmMultipleOffboardBtn" disabled>
-					<i class="feather icon-check-circle"></i> Offboard All (<span id="confirmCount">0</span>)
+				<button type="button" class="btn btn-lg" id="confirmMultipleOffboardBtn" style="background: #F37021; color: white;">
+					<i class="feather icon-check-circle"></i> Confirm Offboard All (<span id="confirmCargosCount">0</span>)
 				</button>
 			</div>
-		</div>
+			</div>
 	</div>
 </div>
 {% endblock %}
@@ -294,6 +294,8 @@ $(document).ready(function() {
 	let scannedCargos = [];
 	let html5QrCode = null;
 	let isScannerActive = false;
+	let isMultipleMode = false;
+	let scannerMode = 'single'; // 'single' or 'multiple'
 	
 	// Get CSRF token
 	function getCsrfToken() {
@@ -318,8 +320,27 @@ $(document).ready(function() {
 	
 	const csrftoken = getCsrfToken();
 	
-	// Start scanner button
+	// Start scanner button (Single Mode)
 	$('#startScannerBtn').on('click', function() {
+		isMultipleMode = false;
+		scannerMode = 'single';
+		$('.scanner-header h3').text('📦 Scan Cargo QR Code 📦');
+		$('.scanner-header p').text('Position the QR code within the scanning box');
+		$('#manualEntryTitle').text('Or Enter Cargo/Parcel Number');
+		$('#manualCargoNumber').attr('placeholder', 'Enter cargo/parcel number');
+		$('#qr-scanner-container').show();
+		startScanner();
+	});
+	
+	// Start scanner button (Multiple Mode)
+	$('#startMultipleScannerBtn').on('click', function() {
+		isMultipleMode = true;
+		scannerMode = 'multiple';
+		scannedCargos = [];
+		$('.scanner-header h3').text('📦 Scan Cargo Group QR Code 📦');
+		$('.scanner-header p').text('Position the cargo group QR code within the scanning box');
+		$('#manualEntryTitle').text('Or Enter Group Code');
+		$('#manualCargoNumber').attr('placeholder', 'Enter cargo group code');
 		$('#qr-scanner-container').show();
 		startScanner();
 	});
@@ -333,9 +354,66 @@ $(document).ready(function() {
 		html5QrCode = new Html5Qrcode("qr-reader");
 		
 		const onScanSuccess = (decodedText, decodedResult) => {
-			searchCargo(decodedText);
-			stopScanner();
-			$('#qr-scanner-container').hide();
+			if (isMultipleMode) {
+				// Stop scanner and show searching
+				stopScanner();
+				
+				Swal.fire({
+					title: 'Searching...',
+					text: 'Loading cargo group details',
+					allowOutsideClick: false,
+					didOpen: () => {
+						Swal.showLoading();
+					}
+				});
+				
+				// Search for cargo group (for offboarding)
+				$.ajax({
+					url: '/api/cargo-group/search-offboard/',
+					method: 'GET',
+					data: { qr_data: decodedText },
+					success: function(response) {
+						Swal.close();
+						if (response.success) {
+							// Store cargos
+							scannedCargos = response.cargos;
+							
+							// Close scanner
+							$('#qr-scanner-container').hide();
+							
+							// Show cargo details modal
+							showCargoDetailsModal(response);
+						} else {
+							Swal.fire({
+								icon: 'error',
+								title: 'Not Found',
+								text: response.message || 'Cargo group not found',
+								timer: 3000,
+								showConfirmButton: false
+							});
+							// Restart scanner
+							startScanner();
+						}
+					},
+					error: function() {
+						Swal.close();
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: 'Failed to load cargo group. Please try again.',
+							timer: 3000,
+							showConfirmButton: false
+						});
+						// Restart scanner
+						startScanner();
+					}
+				});
+			} else {
+				// Single mode
+				searchCargo(decodedText);
+				stopScanner();
+				$('#qr-scanner-container').hide();
+			}
 		};
 		
 		const onScanError = (errorMessage) => {
@@ -384,9 +462,71 @@ $(document).ready(function() {
 	
 	// Manual search button
 	$('#manualSearchBtn').on('click', function() {
-		const cargoNumber = $('#manualCargoNumber').val().trim();
-		if (cargoNumber) {
-			searchCargo(cargoNumber);
+		const inputValue = $('#manualCargoNumber').val().trim();
+		if (!inputValue) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Missing Information',
+				text: isMultipleMode ? 'Please enter a cargo group code' : 'Please enter a cargo number',
+				timer: 3000,
+				showConfirmButton: false
+			});
+			return;
+		}
+		
+		if (isMultipleMode) {
+			// Search for cargo group
+			stopScanner();
+			
+			Swal.fire({
+				title: 'Searching...',
+				text: 'Loading cargo group details',
+				allowOutsideClick: false,
+				didOpen: () => {
+					Swal.showLoading();
+				}
+			});
+			
+			$.ajax({
+				url: '/api/cargo-group/search-offboard/',
+				method: 'GET',
+				data: { qr_data: inputValue },
+				success: function(response) {
+					Swal.close();
+					if (response.success) {
+						// Store cargos
+						scannedCargos = response.cargos;
+						
+						// Close scanner
+						$('#qr-scanner-container').hide();
+						$('#manualCargoNumber').val('');
+						
+						// Show cargo details modal
+						showCargoDetailsModal(response);
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Not Found',
+							text: response.message || 'Cargo group not found',
+							timer: 3000,
+							showConfirmButton: false
+						});
+					}
+				},
+				error: function() {
+					Swal.close();
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'Failed to load cargo group. Please try again.',
+						timer: 3000,
+						showConfirmButton: false
+					});
+				}
+			});
+		} else {
+			// Single mode
+			searchCargo(inputValue);
 			stopScanner();
 			$('#qr-scanner-container').hide();
 			$('#manualCargoNumber').val('');
@@ -449,98 +589,184 @@ $(document).ready(function() {
 		});
 	}
 	
+	// Show cargo details modal for multiple offboard
+	function showCargoDetailsModal(response) {
+		// Set group ID
+		$('#groupIdDisplay').text(response.group_id);
+		
+		// Set total count
+		$('#totalCargosCount').text(response.total_cargos);
+		$('#confirmCargosCount').text(response.total_cargos);
+		
+		// Populate cargo details table
+		const tbody = $('#cargoDetailsTableBody');
+		tbody.empty();
+		
+		response.cargos.forEach((cargo, index) => {
+			tbody.append(`
+				<tr>
+					<td>${index + 1}</td>
+					<td><strong>${cargo.cargo_number}</strong></td>
+					<td>${cargo.description}</td>
+					<td>${cargo.quantity}</td>
+					<td>${cargo.origin}</td>
+					<td>${cargo.destination}</td>
+					<td>${cargo.sender_name}</td>
+					<td>${cargo.receiver_name}</td>
+				</tr>
+			`);
+		});
+		
+		// Show modal
+		$('#multipleCargoDetailsModal').modal('show');
+	}
+	
 	// Display cargo details in receipt style
 	function displayCargoDetails(cargo) {
 		const html = `
-			<div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px;">
-				<h4 style="margin: 0; font-weight: bold; color: #000;">📦 SHABIBY CARGO 📦</h4>
-				<p style="margin: 5px 0; font-size: 13px; color: #000; font-weight: 600;">CARGO OFFBOARDING CONFIRMATION</p>
-				<p style="margin: 8px 0 0 0; font-size: 14px; color: #000;">
-					<strong>FROM:</strong> <span style="color: #F37021; font-weight: bold;">${cargo.origin}</span> 
-					<strong style="margin-left: 10px;">TO:</strong> <span style="color: #F37021; font-weight: bold;">${cargo.destination}</span>
+			<div style="text-align: center; border-bottom: 3px dashed #000; padding-bottom: 20px; margin-bottom: 20px;">
+				<h3 style="margin: 0; font-weight: bold; color: #000; font-size: 24px;">📦 SHABIBY CARGO 📦</h3>
+				<p style="margin: 10px 0; font-size: 18px; color: #000; font-weight: bold;">CARGO OFFBOARDING CONFIRMATION</p>
+				<p style="margin: 12px 0 0 0; font-size: 18px; color: #000;">
+					<strong style="font-size: 18px;">FROM:</strong> <span style="color: #F37021; font-weight: bold; font-size: 20px;">${cargo.origin}</span> 
+					<strong style="margin-left: 15px; font-size: 18px;">TO:</strong> <span style="color: #F37021; font-weight: bold; font-size: 20px;">${cargo.destination}</span>
 				</p>
 			</div>
 			
-			<div style="margin-bottom: 15px;">
-				<strong style="text-decoration: underline; color: #000; font-size: 14px;">CARGO INFORMATION</strong>
-				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+			<div style="margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">CARGO INFORMATION</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Cargo Number:</strong></td>
-						<td style="text-align: right; color: #F37021; font-weight: bold;">${cargo.cargo_number}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Cargo Number:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 20px;">${cargo.cargo_number}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Receipt Number:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receipt_number || 'N/A'}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Receipt Number:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receipt_number || 'N/A'}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Description:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.description}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Description:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.description}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Quantity:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.quantity} pcs</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Quantity:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.quantity} pcs</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Weight:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.weight ? cargo.weight + ' kg' : 'Not specified'}</td>
-					</tr>
-				</table>
-			</div>
-			
-			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
-				<strong style="text-decoration: underline; color: #000; font-size: 14px;">SENDER DETAILS</strong>
-				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
-					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Name:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.sender_name}</td>
-					</tr>
-					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Phone:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.sender_phone}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Weight:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.weight ? cargo.weight + ' kg' : 'Not specified'}</td>
 					</tr>
 				</table>
 			</div>
 			
-			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
-				<strong style="text-decoration: underline; color: #000; font-size: 14px;">RECEIVER DETAILS</strong>
-				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">SENDER DETAILS</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Name:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receiver_name}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.sender_name}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Phone:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receiver_phone}</td>
-					</tr>
-				</table>
-			</div>
-			
-			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
-				<strong style="text-decoration: underline; color: #000; font-size: 14px;">🚛 VEHICLE INFORMATION</strong>
-				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
-					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Vehicle:</strong></td>
-						<td style="text-align: right; color: #F37021; font-weight: bold;">${cargo.vehicle_plate || 'Not assigned'}</td>
-					</tr>
-					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Model:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.vehicle_model || 'N/A'}</td>
-					</tr>
-					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Conductor:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.conductor_name || 'N/A'}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.sender_phone}</td>
 					</tr>
 				</table>
 			</div>
 			
-			<div style="border-top: 2px dashed #000; padding-top: 15px; text-align: center;">
-				<p style="margin: 5px 0; font-size: 13px; color: #000;">Current Status: <strong style="color: #F37021;">${cargo.status}</strong></p>
-				<p style="margin: 5px 0; font-size: 12px; color: #000; font-weight: 600;">Confirm to mark as ARRIVED AT BRANCH</p>
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">RECEIVER DETAILS</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receiver_name}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receiver_phone}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">🚛 VEHICLE INFORMATION</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Vehicle:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 20px;">${cargo.vehicle_plate || 'Not assigned'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Model:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.vehicle_model || 'N/A'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Conductor:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.conductor_name || 'N/A'}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 3px dashed #000; padding-top: 20px; text-align: center;">
+				<p style="margin: 8px 0; font-size: 18px; color: #000; font-weight: bold;">Current Status: <strong style="color: #F37021; font-size: 20px;">${cargo.status}</strong></p>
+				<p style="margin: 8px 0; font-size: 18px; color: #000; font-weight: bold;">Confirm to mark as ARRIVED AT BRANCH</p>
 			</div>
 		`;
 		
 		$('#cargoDetailsContent').html(html);
 	}
+	
+	// Confirm multiple offboard
+	$('#confirmMultipleOffboardBtn').on('click', function() {
+		if (scannedCargos.length === 0) return;
+		
+		$(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+		
+		const cargoIds = scannedCargos.map(c => c.id);
+		
+		$.ajax({
+			url: '/api/cargo/bulk-offboard/',
+			method: 'POST',
+			headers: {'X-CSRFToken': csrftoken},
+			contentType: 'application/json',
+			data: JSON.stringify({ cargo_ids: cargoIds }),
+			success: function(response) {
+				if (response.success) {
+					$('#multipleCargoDetailsModal').modal('hide');
+					Swal.fire({
+						icon: 'success',
+						title: 'Offboarded Successfully!',
+						text: `${response.offboarded_count} cargo(s) marked as arrived at branch!`,
+						timer: 2000,
+						showConfirmButton: false,
+						timerProgressBar: true
+					}).then(() => {
+						// Reset and reload page
+						scannedCargos = [];
+						location.reload();
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Failed',
+						text: response.message,
+						timer: 3000,
+						showConfirmButton: false
+					});
+				}
+			},
+			error: function() {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'Failed to offboard cargos. Please try again.',
+					timer: 3000,
+					showConfirmButton: false
+				});
+			},
+			complete: function() {
+				$('#confirmMultipleOffboardBtn').prop('disabled', false).html('<i class="feather icon-check-circle"></i> Confirm Offboard All (<span id="confirmCargosCount">' + scannedCargos.length + '</span>)');
+			}
+		});
+	});
 	
 	// Confirm single offboard
 	$('#confirmOffboardBtn').on('click', function() {

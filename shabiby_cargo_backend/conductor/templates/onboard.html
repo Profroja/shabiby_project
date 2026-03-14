@@ -122,7 +122,7 @@
 					
 					<!-- Multiple Cargo Onboarding -->
 					<div class="col-md-6 mb-3">
-						<button class="btn btn-success btn-block btn-lg" data-toggle="modal" data-target="#multipleOnboardModal" style="padding: 30px; border-radius: 10px;">
+						<button class="btn btn-success btn-block btn-lg" id="startMultipleScannerBtn" style="padding: 30px; border-radius: 10px;">
 							<i class="fas fa-boxes fa-3x mb-3"></i>
 							<h5 class="mb-0 text-white">Onboard Multiple Cargos</h5>
 						</button>
@@ -137,8 +137,8 @@
 <div id="qr-scanner-container">
 	
 	<div class="scanner-header">
-		<h3>📦 Scan Cargo QR Code 📦</h3>
-		<p>Position the QR code within the scanning box</p>
+		<h3 id="scannerTitle">📦 Scan Cargo QR Code 📦</h3>
+		<p id="scannerSubtitle">Position the QR code within the scanning box</p>
 	</div>
 	
 	<div id="qr-reader" style="position: relative;"></div>
@@ -149,7 +149,7 @@
 			<input type="text" class="form-control form-control-lg" id="manualCargoNumber" placeholder="Enter cargo/parcel number">
 		</div>
 		<button class="btn btn-primary btn-block" id="manualSearchBtn">
-			<i class="feather icon-search"></i> Search Cargo
+			<i class="feather icon-search"></i> Search
 		</button>
 	</div>
 </div>
@@ -231,50 +231,82 @@
 	</div>
 </div>
 
-<!-- Multiple Onboard Modal -->
+<!-- Multiple Onboard Modal - Hidden, will auto-open scanner -->
 <div class="modal fade" id="multipleOnboardModal" tabindex="-1" role="dialog" aria-labelledby="multipleOnboardModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg" role="document">
+	<div class="modal-dialog" role="document">
 		<div class="modal-content">
 			<div class="modal-header" style="background: #2ed8b6; color: white;">
-				<h5 class="modal-title" id="multipleOnboardModalLabel">📦 Onboard Multiple Cargos</h5>
+				<h5 class="modal-title" id="multipleOnboardModalLabel">📦 Scan Multiple Cargos</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body text-center">
+				<i class="fas fa-qrcode" style="font-size: 60px; color: #2ed8b6;"></i>
+				<p class="mt-3">Opening QR scanner...</p>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Multiple Cargo Details Modal -->
+<div class="modal fade" id="multipleCargoDetailsModal" tabindex="-1" role="dialog" aria-labelledby="multipleCargoDetailsModalLabel" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog modal-xl" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="background: #2ed8b6; color: white;">
+				<h5 class="modal-title" id="multipleCargoDetailsModalLabel">📦 Cargo Group Details - <span id="groupIdDisplay"></span></h5>
 				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 1;">
 					<span aria-hidden="true">&times;</span>
 				</button>
 			</div>
 			<div class="modal-body">
-				<div class="alert alert-info">
-					<i class="feather icon-info"></i> <strong>Scan multiple cargos:</strong> Scan each cargo's QR code. They will be added to the list below.
+				<div class="alert alert-success">
+					<i class="feather icon-check-circle"></i> <strong><span id="totalCargosCount">0</span> cargos</strong> found in this group
 				</div>
 				
-				<div class="form-group">
-					<label for="multipleCargoNumber">Scan Cargo Number</label>
-					<input type="text" class="form-control form-control-lg" id="multipleCargoNumber" placeholder="Scan cargo number">
-				</div>
-				
-				<h6 class="mt-4 mb-3">Scanned Cargos (<span id="scannedCount">0</span>)</h6>
-				<div class="table-responsive">
-					<table class="table table-bordered" id="scannedCargosTable">
-						<thead class="thead-light">
+				<!-- Cargo Details Table -->
+				<h6 class="mb-3" style="color: #000; font-weight: bold;">
+					<i class="fas fa-list"></i> Cargo Details:
+				</h6>
+				<div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+					<table class="table table-bordered table-hover">
+						<thead style="background: #2ed8b6; color: white; position: sticky; top: 0;">
 							<tr>
 								<th>#</th>
 								<th>Cargo Number</th>
+								<th>Description</th>
+								<th>Quantity</th>
+								<th>From</th>
+								<th>To</th>
 								<th>Sender</th>
-								<th>Destination</th>
-								<th>Action</th>
+								<th>Receiver</th>
 							</tr>
 						</thead>
-						<tbody id="scannedCargosBody">
-							<tr id="noScannedCargos">
-								<td colspan="5" class="text-center text-muted">No cargos scanned yet</td>
-							</tr>
+						<tbody id="cargoDetailsTableBody">
+							<!-- Will be populated by JavaScript -->
 						</tbody>
 					</table>
+				</div>
+				
+				<!-- Vehicle Selection -->
+				<div class="mt-4">
+					<h6 class="mb-3" style="color: #000; font-weight: bold;">
+						<i class="fas fa-truck"></i> Select Vehicle (Required)
+					</h6>
+					<div class="form-group">
+						<label for="multipleVehicleSelect" style="color: #000; font-weight: 600;">Vehicle Plate Number <span class="text-danger">*</span></label>
+						<select class="form-control form-control-lg" id="multipleVehicleSelect" required>
+							<option value="">-- Select Vehicle --</option>
+							<!-- Options will be populated by JavaScript -->
+						</select>
+						<small class="form-text text-muted">Select the vehicle you'll use to transport all these cargos</small>
+					</div>
 				</div>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-				<button type="button" class="btn btn-success btn-lg" id="confirmMultipleOnboardBtn" disabled>
-					<i class="feather icon-check-circle"></i> Onboard All (<span id="confirmCount">0</span>)
+				<button type="button" class="btn btn-success btn-lg" id="confirmMultipleOnboardBtn">
+					<i class="feather icon-check-circle"></i> Confirm Onboard All (<span id="confirmCargosCount">0</span>)
 				</button>
 			</div>
 		</div>
@@ -304,6 +336,8 @@ $(document).ready(function() {
 	let scannedCargos = [];
 	let html5QrCode = null;
 	let isScannerActive = false;
+	let isMultipleMode = false;
+	let scannerMode = 'single'; // 'single', 'multiple', or 'group'
 	
 	// Populate vehicle dropdown
 	function populateVehicleDropdown() {
@@ -313,6 +347,19 @@ $(document).ready(function() {
 		
 		vehicles.forEach(vehicle => {
 			select.append(`
+				<option value="${vehicle.id}">
+					${vehicle.plate_number} - ${vehicle.vehicle_model} (${vehicle.vehicle_type})
+				</option>
+			`);
+		});
+		
+		// Also populate multiple vehicle select
+		const multiSelect = $('#multipleVehicleSelect');
+		multiSelect.empty();
+		multiSelect.append('<option value="">-- Select Vehicle --</option>');
+		
+		vehicles.forEach(vehicle => {
+			multiSelect.append(`
 				<option value="${vehicle.id}">
 					${vehicle.plate_number} - ${vehicle.vehicle_model} (${vehicle.vehicle_type})
 				</option>
@@ -347,17 +394,36 @@ $(document).ready(function() {
 	
 	const csrftoken = getCsrfToken();
 	
-	// Start QR Scanner
+	// Start QR Scanner (Single Mode)
 	$('#startScannerBtn').on('click', function() {
+		isMultipleMode = false;
+		scannerMode = 'single';
+		$('#scannerTitle').text('📦 Scan Cargo QR Code 📦');
+		$('#scannerSubtitle').text('Position the QR code within the scanning box');
+		$('#scannedCargosList').hide();
+		$('#qr-scanner-container').fadeIn();
+		startScanner();
+	});
+	
+	// Start QR Scanner (Multiple Mode)
+	$('#startMultipleScannerBtn').on('click', function() {
+		isMultipleMode = true;
+		scannerMode = 'multiple';
+		scannedCargos = []; // Reset scanned cargos
+		$('#scannerTitle').text('📦 Scan Cargo Group QR Code 📦');
+		$('#scannerSubtitle').text('Position the cargo group QR code within the scanning box');
 		$('#qr-scanner-container').fadeIn();
 		startScanner();
 	});
 	
 	// Close Scanner
-	$('#closeScannerBtn').on('click', function() {
+	window.closeScanner = function() {
 		stopScanner();
 		$('#qr-scanner-container').fadeOut();
-	});
+		isMultipleMode = false;
+		scannerMode = 'single';
+		$('#manualCargoNumber').val('');
+	};
 	
 	// Start camera scanner
 	function startScanner() {
@@ -404,10 +470,66 @@ $(document).ready(function() {
 	
 	// QR Scan success callback
 	function onScanSuccess(decodedText, decodedResult) {
-		// Stop scanner and search for cargo
-		stopScanner();
-		$('#qr-scanner-container').fadeOut();
-		searchCargo(decodedText);
+		if (isMultipleMode) {
+			// Stop scanner and show searching overlay
+			stopScanner();
+			
+			Swal.fire({
+				title: 'Searching...',
+				text: 'Loading cargo group details',
+				allowOutsideClick: false,
+				didOpen: () => {
+					Swal.showLoading();
+				}
+			});
+			
+			// Search for cargo group
+			$.ajax({
+				url: '/api/cargo-group/search/',
+				method: 'GET',
+				data: { qr_data: decodedText },
+				success: function(response) {
+					Swal.close();
+					if (response.success) {
+						// Store cargos
+						scannedCargos = response.cargos;
+						
+						// Close scanner
+						$('#qr-scanner-container').fadeOut();
+						
+						// Show cargo details modal
+						showCargoDetailsModal(response);
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Not Found',
+							text: response.message || 'Cargo group not found',
+							timer: 3000,
+							showConfirmButton: false
+						});
+						// Restart scanner
+						startScanner();
+					}
+				},
+				error: function() {
+					Swal.close();
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'Failed to load cargo group. Please try again.',
+						timer: 3000,
+						showConfirmButton: false
+					});
+					// Restart scanner
+					startScanner();
+				}
+			});
+		} else {
+			// In single mode, stop scanner and show details
+			stopScanner();
+			$('#qr-scanner-container').fadeOut();
+			searchCargo(decodedText);
+		}
 	}
 	
 	// QR Scan error callback (ignore, happens frequently)
@@ -415,25 +537,380 @@ $(document).ready(function() {
 		// Ignore scan errors
 	}
 	
-	// Manual search button
-	$('#manualSearchBtn').on('click', function() {
-		const cargoNumber = $('#manualCargoNumber').val().trim();
+	// Show cargo details modal with full table
+	function showCargoDetailsModal(response) {
+		// Set group ID
+		$('#groupIdDisplay').text(response.group_id);
 		
-		if (!cargoNumber) {
+		// Set total count
+		$('#totalCargosCount').text(response.total_cargos);
+		$('#confirmCargosCount').text(response.total_cargos);
+		
+		// Populate cargo details table
+		const tbody = $('#cargoDetailsTableBody');
+		tbody.empty();
+		
+		response.cargos.forEach((cargo, index) => {
+			tbody.append(`
+				<tr>
+					<td>${index + 1}</td>
+					<td><strong>${cargo.cargo_number}</strong></td>
+					<td>${cargo.description}</td>
+					<td>${cargo.quantity}</td>
+					<td>${cargo.origin}</td>
+					<td>${cargo.destination}</td>
+					<td>${cargo.sender_name}</td>
+					<td>${cargo.receiver_name}</td>
+				</tr>
+			`);
+		});
+		
+		// Reset vehicle selection
+		$('#multipleVehicleSelect').val('');
+		
+		// Show modal
+		$('#multipleCargoDetailsModal').modal('show');
+	}
+	
+	// Add cargo from scan in multiple mode
+	function addCargoFromScan(cargoNumber) {
+		// Extract cargo number from QR code format if needed
+		if (cargoNumber.includes('CARGO:')) {
+			const parts = cargoNumber.split('|');
+			for (const part of parts) {
+				if (part.startsWith('CARGO:')) {
+					cargoNumber = part.replace('CARGO:', '').trim();
+					break;
+				}
+			}
+		}
+		
+		// Check if already added
+		if (scannedCargos.find(c => c.cargo_number === cargoNumber)) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Already Added',
+				text: 'This cargo is already in the list',
+				timer: 1500,
+				showConfirmButton: false,
+				position: 'top-end',
+				toast: true
+			});
+			return;
+		}
+		
+		// Fetch cargo details
+		$.ajax({
+			url: '/api/cargo/search/',
+			method: 'GET',
+			data: { cargo_number: cargoNumber },
+			success: function(response) {
+				if (response.success) {
+					scannedCargos.push(response.cargo);
+					updateScannedCargosList();
+					
+					// Show success toast
+					Swal.fire({
+						icon: 'success',
+						title: 'Cargo Added!',
+						text: `${response.cargo.cargo_number} (${scannedCargos.length} total)`,
+						timer: 1500,
+						showConfirmButton: false,
+						position: 'top-end',
+						toast: true
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Not Found',
+						text: response.message || 'Cargo not found',
+						timer: 1500,
+						showConfirmButton: false,
+						position: 'top-end',
+						toast: true
+					});
+				}
+			},
+			error: function() {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'Failed to search cargo',
+					timer: 1500,
+					showConfirmButton: false,
+					position: 'top-end',
+					toast: true
+				});
+			}
+		});
+	}
+	
+	// Update scanned cargos list table
+	function updateScannedCargosList() {
+		const tbody = $('#scannedCargosTableBody');
+		tbody.empty();
+		
+		if (scannedCargos.length === 0) {
+			tbody.append('<tr><td colspan="3" class="text-center text-muted">No cargos scanned yet</td></tr>');
+		} else {
+			scannedCargos.forEach((cargo, index) => {
+				tbody.append(`
+					<tr>
+						<td>${index + 1}</td>
+						<td><strong>${cargo.cargo_number}</strong></td>
+						<td>${cargo.origin} → ${cargo.destination}</td>
+					</tr>
+				`);
+			});
+		}
+		
+		$('#scannedCount').text(scannedCargos.length);
+		$('#scannedCountBtn').text(scannedCargos.length);
+	}
+	
+	// Manual search button (for scanner)
+	$('#manualSearchBtn').on('click', function() {
+		const groupCode = $('#manualCargoNumber').val().trim();
+		
+		if (!groupCode) {
 			Swal.fire({
 				icon: 'warning',
 				title: 'Missing Information',
-				text: 'Please enter a cargo number',
+				text: 'Please enter a cargo group code',
 				timer: 3000,
 				showConfirmButton: false
 			});
 			return;
 		}
 		
-		stopScanner();
-		$('#qr-scanner-container').fadeOut();
-		searchCargo(cargoNumber);
-		$('#manualCargoNumber').val('');
+		if (isMultipleMode) {
+			// In multiple mode, search for cargo group
+			stopScanner();
+			
+			Swal.fire({
+				title: 'Searching...',
+				text: 'Loading cargo group details',
+				allowOutsideClick: false,
+				didOpen: () => {
+					Swal.showLoading();
+				}
+			});
+			
+			$.ajax({
+				url: '/api/cargo-group/search/',
+				method: 'GET',
+				data: { qr_data: groupCode },
+				success: function(response) {
+					Swal.close();
+					if (response.success) {
+						// Store cargos
+						scannedCargos = response.cargos;
+						
+						// Close scanner
+						$('#qr-scanner-container').fadeOut();
+						$('#manualCargoNumber').val('');
+						
+						// Show cargo details modal
+						showCargoDetailsModal(response);
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Not Found',
+							text: response.message || 'Cargo group not found',
+							timer: 3000,
+							showConfirmButton: false
+						});
+					}
+				},
+				error: function() {
+					Swal.close();
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'Failed to load cargo group. Please try again.',
+						timer: 3000,
+						showConfirmButton: false
+					});
+				}
+			});
+		} else {
+			// In single mode, stop scanner and show details
+			stopScanner();
+			$('#qr-scanner-container').fadeOut();
+			searchCargo(groupCode);
+			$('#manualCargoNumber').val('');
+		}
+	});
+	
+	// Search & Add button (for multiple onboard modal)
+	$('#searchAndAddBtn').on('click', function() {
+		const cargoNumber = $('#multipleCargoNumber').val().trim();
+		
+		if (!cargoNumber) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Missing Information',
+				text: 'Please enter a cargo number',
+				timer: 2000,
+				showConfirmButton: false
+			});
+			return;
+		}
+		
+		// Check if already added
+		if (scannedCargos.find(c => c.cargo_number === cargoNumber)) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Already Added',
+				text: 'This cargo has already been added to the list',
+				timer: 2000,
+				showConfirmButton: false
+			});
+			$('#multipleCargoNumber').val('').focus();
+			return;
+		}
+		
+		// Show loading on button
+		$(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Searching...');
+		
+		// Fetch cargo details
+		$.ajax({
+			url: '/api/cargo/search/',
+			method: 'GET',
+			data: { cargo_number: cargoNumber },
+			success: function(response) {
+				if (response.success) {
+					scannedCargos.push(response.cargo);
+					addCargoToMultipleTable(response.cargo);
+					updateMultipleCargoCount();
+					$('#multipleCargoNumber').val('').focus();
+					
+					// Show success message
+					Swal.fire({
+						icon: 'success',
+						title: 'Cargo Added!',
+						text: response.cargo.cargo_number,
+						timer: 1500,
+						showConfirmButton: false
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Not Found',
+						text: response.message || 'Cargo not found',
+						timer: 2000,
+						showConfirmButton: false
+					});
+					$('#multipleCargoNumber').focus();
+				}
+			},
+			error: function() {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'Failed to search cargo. Please try again.',
+					timer: 2000,
+					showConfirmButton: false
+				});
+			},
+			complete: function() {
+				$('#searchAndAddBtn').prop('disabled', false).html('<i class="feather icon-search"></i> Search & Add');
+			}
+		});
+	});
+	
+	// Scan Group QR Code button
+	$('#scanGroupQRBtn').on('click', function() {
+		$('#multipleOnboardModal').modal('hide');
+		scannerMode = 'group';
+		$('#scannerTitle').text('📦 Scan Cargo Group QR Code 📦');
+		$('#scannerSubtitle').text('Position the group QR code within the scanning box');
+		startScanner();
+	});
+	
+	// Search cargo group by QR data
+	function searchCargoGroup(qrData) {
+		Swal.fire({
+			title: 'Loading Cargo Group...',
+			text: 'Please wait',
+			allowOutsideClick: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
+		
+		$.ajax({
+			url: '/api/cargo-group/search/',
+			method: 'GET',
+			data: { qr_data: qrData },
+			success: function(response) {
+				Swal.close();
+				if (response.success) {
+					// Clear existing cargos
+					scannedCargos = [];
+					$('#addedCargosBody').empty();
+					
+					// Add all cargos from the group
+					response.cargos.forEach((cargo, index) => {
+						scannedCargos.push(cargo);
+						const row = `
+							<tr data-cargo-id="${cargo.id}">
+								<td>${index + 1}</td>
+								<td><strong>${cargo.cargo_number}</strong></td>
+								<td>${cargo.origin}</td>
+								<td>${cargo.destination}</td>
+								<td>
+									<button class="btn btn-sm btn-danger remove-cargo-btn" data-cargo-id="${cargo.id}">
+										<i class="feather icon-trash-2"></i> Remove
+									</button>
+								</td>
+							</tr>
+						`;
+						$('#addedCargosBody').append(row);
+					});
+					
+					updateMultipleCargoCount();
+					
+					// Show success message
+					Swal.fire({
+						icon: 'success',
+						title: 'Group Loaded!',
+						text: `${response.total_cargos} cargo(s) loaded from group ${response.group_id}`,
+						timer: 2000,
+						showConfirmButton: false
+					});
+					
+					// Show the multiple onboard modal
+					$('#multipleOnboardModal').modal('show');
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Not Found',
+						text: response.message || 'Cargo group not found',
+						timer: 3000,
+						showConfirmButton: false
+					});
+				}
+			},
+			error: function() {
+				Swal.close();
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'Failed to load cargo group. Please try again.',
+					timer: 3000,
+					showConfirmButton: false
+				});
+			}
+		});
+	}
+	
+	// Enter key on multiple cargo number input
+	$('#multipleCargoNumber').on('keypress', function(e) {
+		if (e.which === 13) {
+			e.preventDefault();
+			$('#searchAndAddBtn').click();
+		}
 	});
 	
 	// Manual entry on Enter key
@@ -545,80 +1022,80 @@ $(document).ready(function() {
 	// Display cargo details in receipt style
 	function displayCargoDetails(cargo) {
 		const html = `
-			<div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px;">
-				<h4 style="margin: 0; font-weight: bold; color: #000;">📦 SHABIBY CARGO 📦</h4>
-				<p style="margin: 5px 0; font-size: 13px; color: #000; font-weight: 600;">CARGO ONBOARDING CONFIRMATION</p>
-				<p style="margin: 8px 0 0 0; font-size: 14px; color: #000;">
-					<strong>FROM:</strong> <span style="color: #F37021; font-weight: bold;">${cargo.origin}</span> 
-					<strong style="margin-left: 10px;">TO:</strong> <span style="color: #F37021; font-weight: bold;">${cargo.destination}</span>
+			<div style="text-align: center; border-bottom: 3px dashed #000; padding-bottom: 20px; margin-bottom: 20px;">
+				<h3 style="margin: 0; font-weight: bold; color: #000; font-size: 24px;">📦 SHABIBY CARGO 📦</h3>
+				<p style="margin: 10px 0; font-size: 18px; color: #000; font-weight: bold;">CARGO ONBOARDING CONFIRMATION</p>
+				<p style="margin: 12px 0 0 0; font-size: 18px; color: #000;">
+					<strong style="font-size: 18px;">FROM:</strong> <span style="color: #F37021; font-weight: bold; font-size: 20px;">${cargo.origin}</span> 
+					<strong style="margin-left: 15px; font-size: 18px;">TO:</strong> <span style="color: #F37021; font-weight: bold; font-size: 20px;">${cargo.destination}</span>
 				</p>
 			</div>
 			
-			<div style="margin-bottom: 15px;">
-				<strong style="text-decoration: underline; color: #000; font-size: 14px;">CARGO INFORMATION</strong>
-				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+			<div style="margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">CARGO INFORMATION</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Cargo Number:</strong></td>
-						<td style="text-align: right; color: #F37021; font-weight: bold;">${cargo.cargo_number}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Cargo Number:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 20px;">${cargo.cargo_number}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Receipt Number:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receipt_number || 'N/A'}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Receipt Number:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receipt_number || 'N/A'}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Description:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.description}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Description:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.description}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Quantity:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.quantity} pcs</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Quantity:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.quantity} pcs</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Weight:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.weight ? cargo.weight + ' kg' : 'Not specified'}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Weight:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.weight ? cargo.weight + ' kg' : 'Not specified'}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Cargo Value:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">TZS ${parseFloat(cargo.cargo_value).toLocaleString()}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Cargo Value:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">TZS ${parseFloat(cargo.cargo_value).toLocaleString()}</td>
 					</tr>
 					<tr style="background: #fff3cd;">
-						<td style="padding: 5px 0;"><strong style="color: #000;">Shipping Fee:</strong></td>
-						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 15px;">TZS ${parseFloat(cargo.shipping_amount).toLocaleString()}</td>
+						<td style="padding: 10px 5px;"><strong style="color: #000; font-size: 20px;">Shipping Fee:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 22px;">TZS ${parseFloat(cargo.shipping_amount).toLocaleString()}</td>
 					</tr>
 				</table>
 			</div>
 			
-			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
-				<strong style="text-decoration: underline; color: #000; font-size: 14px;">SENDER DETAILS</strong>
-				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">SENDER DETAILS</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Name:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.sender_name}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.sender_name}</td>
 					</tr>
 					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Phone:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.sender_phone}</td>
-					</tr>
-				</table>
-			</div>
-			
-			<div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 15px;">
-				<strong style="text-decoration: underline; color: #000; font-size: 14px;">RECEIVER DETAILS</strong>
-				<table style="width: 100%; margin-top: 8px; font-size: 14px; color: #000;">
-					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Name:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receiver_name}</td>
-					</tr>
-					<tr>
-						<td style="padding: 5px 0;"><strong style="color: #000;">Phone:</strong></td>
-						<td style="text-align: right; color: #000; font-weight: 600;">${cargo.receiver_phone}</td>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.sender_phone}</td>
 					</tr>
 				</table>
 			</div>
 			
-			<div style="border-top: 2px dashed #000; padding-top: 15px; text-align: center;">
-				<p style="margin: 5px 0; font-size: 13px; color: #000;">Current Status: <strong style="color: #F37021;">${cargo.status}</strong></p>
-				<p style="margin: 5px 0; font-size: 12px; color: #000; font-weight: 600;">Confirm to mark as ONBOARDED</p>
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">RECEIVER DETAILS</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receiver_name}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receiver_phone}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 3px dashed #000; padding-top: 20px; text-align: center;">
+				<p style="margin: 8px 0; font-size: 18px; color: #000; font-weight: bold;">Current Status: <strong style="color: #F37021; font-size: 20px;">${cargo.status}</strong></p>
+				<p style="margin: 8px 0; font-size: 18px; color: #000; font-weight: bold;">Confirm to mark as ONBOARDED</p>
 			</div>
 		`;
 		
@@ -693,120 +1170,125 @@ $(document).ready(function() {
 		});
 	});
 	
-	// Multiple cargo scanning
-	$('#multipleCargoNumber').on('keypress', function(e) {
-		if (e.which === 13) { // Enter key
-			e.preventDefault();
-			const cargoNumber = $(this).val().trim();
-			
-			if (!cargoNumber) return;
-			
-			// Check if already scanned
-			if (scannedCargos.find(c => c.cargo_number === cargoNumber)) {
-				Swal.fire({
-					icon: 'warning',
-					title: 'Already Scanned',
-					text: 'This cargo has already been scanned',
-					timer: 2000,
-					showConfirmButton: false
-				});
-				$(this).val('');
-				return;
-			}
-			
-			// Fetch cargo details
-			$.ajax({
-				url: '/api/cargo/search/',
-				method: 'GET',
-				data: { cargo_number: cargoNumber },
-				success: function(response) {
-					if (response.success) {
-						scannedCargos.push(response.cargo);
-						addCargoToTable(response.cargo);
-						$('#multipleCargoNumber').val('');
-						updateScannedCount();
-					} else {
-						Swal.fire({
-							icon: 'error',
-							title: 'Not Found',
-							text: response.message || 'Cargo not found',
-							timer: 2000,
-							showConfirmButton: false
-						});
-					}
-				}
-			});
-		}
-	});
-	
-	// Add cargo to scanned table
-	function addCargoToTable(cargo) {
-		$('#noScannedCargos').hide();
+	// Add cargo to multiple onboard modal table
+	function addCargoToMultipleTable(cargo) {
+		$('#noAddedCargos').hide();
 		
 		const row = `
 			<tr data-cargo-id="${cargo.id}">
 				<td>${scannedCargos.length}</td>
 				<td><strong>${cargo.cargo_number}</strong></td>
-				<td>${cargo.sender_name}</td>
+				<td>${cargo.origin}</td>
 				<td>${cargo.destination}</td>
 				<td>
 					<button class="btn btn-sm btn-danger remove-cargo-btn" data-cargo-id="${cargo.id}">
-						<i class="feather icon-trash-2"></i>
+						<i class="feather icon-trash-2"></i> Remove
 					</button>
 				</td>
 			</tr>
 		`;
 		
-		$('#scannedCargosBody').append(row);
+		$('#addedCargosBody').append(row);
 	}
 	
-	// Remove cargo from scanned list
+	// Remove cargo from list
 	$(document).on('click', '.remove-cargo-btn', function() {
 		const cargoId = $(this).data('cargo-id');
 		scannedCargos = scannedCargos.filter(c => c.id !== cargoId);
 		$(this).closest('tr').remove();
-		updateScannedCount();
+		
+		// Renumber remaining rows
+		$('#addedCargosBody tr[data-cargo-id]').each(function(index) {
+			$(this).find('td:first').text(index + 1);
+		});
+		
+		updateMultipleCargoCount();
 		
 		if (scannedCargos.length === 0) {
-			$('#noScannedCargos').show();
+			$('#noAddedCargos').show();
 		}
 	});
 	
-	// Update scanned count
-	function updateScannedCount() {
-		$('#scannedCount').text(scannedCargos.length);
+	// Update multiple cargo count
+	function updateMultipleCargoCount() {
+		$('#addedCargosCount').text(scannedCargos.length);
 		$('#confirmCount').text(scannedCargos.length);
-		$('#confirmMultipleOnboardBtn').prop('disabled', scannedCargos.length === 0);
+		$('#proceedToVehicleBtn').prop('disabled', scannedCargos.length === 0);
 	}
+	
+	// Proceed to vehicle selection
+	$('#proceedToVehicleBtn').on('click', function() {
+		if (scannedCargos.length === 0) return;
+		
+		// Hide multiple onboard modal and show vehicle selection modal
+		$('#multipleOnboardModal').modal('hide');
+		
+		// Populate final cargos list
+		$('#totalCargosCount').text(scannedCargos.length);
+		const finalList = $('#finalCargosList');
+		finalList.empty();
+		
+		scannedCargos.forEach((cargo, index) => {
+			finalList.append(`
+				<tr>
+					<td>${index + 1}</td>
+					<td><strong>${cargo.cargo_number}</strong></td>
+					<td>${cargo.origin}</td>
+					<td>${cargo.destination}</td>
+				</tr>
+			`);
+		});
+		
+		// Show vehicle modal after a short delay to allow first modal to close
+		setTimeout(function() {
+			$('#multipleVehicleModal').modal('show');
+		}, 300);
+	});
 	
 	// Confirm multiple onboard
 	$('#confirmMultipleOnboardBtn').on('click', function() {
 		if (scannedCargos.length === 0) return;
+		
+		// Validate vehicle selection
+		const vehicleId = $('#multipleVehicleSelect').val();
+		if (!vehicleId) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'Vehicle Required',
+				text: 'Please select a vehicle before confirming onboard',
+				timer: 3000,
+				showConfirmButton: false
+			});
+			return;
+		}
 		
 		$(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
 		
 		const cargoIds = scannedCargos.map(c => c.id);
 		
 		$.ajax({
-			url: '/api/cargo/onboard-multiple/',
+			url: '/api/cargo/bulk-onboard/',
 			method: 'POST',
 			headers: {'X-CSRFToken': csrftoken},
 			contentType: 'application/json',
-			data: JSON.stringify({ cargo_ids: cargoIds }),
+			data: JSON.stringify({ 
+				cargo_ids: cargoIds,
+				vehicle_id: vehicleId
+			}),
 			success: function(response) {
 				if (response.success) {
-					$('#multipleOnboardModal').modal('hide');
+					$('#multipleCargoDetailsModal').modal('hide');
 					Swal.fire({
 						icon: 'success',
 						title: 'Onboarded Successfully!',
-						text: `${response.count} cargo(s) onboarded successfully`,
-						timer: 3000,
+						text: `${response.onboarded_count} cargo(s) onboarded successfully!`,
+						timer: 2000,
 						showConfirmButton: false,
 						timerProgressBar: true
 					}).then(() => {
+						// Reset and reload page
 						scannedCargos = [];
-						$('#scannedCargosBody').html('<tr id="noScannedCargos"><td colspan="5" class="text-center text-muted">No cargos scanned yet</td></tr>');
-						updateScannedCount();
+						location.reload();
 					});
 				} else {
 					Swal.fire({
@@ -828,7 +1310,7 @@ $(document).ready(function() {
 				});
 			},
 			complete: function() {
-				$('#confirmMultipleOnboardBtn').prop('disabled', false).html('<i class="feather icon-check-circle"></i> Onboard All (<span id="confirmCount">' + scannedCargos.length + '</span>)');
+				$('#confirmMultipleOnboardBtn').prop('disabled', false).html('<i class="feather icon-check-circle"></i> Confirm Onboard All (<span id="confirmCargosCount">' + scannedCargos.length + '</span>)');
 			}
 		});
 	});
@@ -841,6 +1323,20 @@ $(document).ready(function() {
 	$('#cargoDetailsModal').on('hidden.bs.modal', function() {
 		currentCargoId = null;
 		$('#vehicleSelect').val('');
+	});
+	
+	$('#multipleOnboardModal').on('hidden.bs.modal', function() {
+		// Only reset if not proceeding to vehicle selection
+		if (!$('#multipleVehicleModal').hasClass('show')) {
+			scannedCargos = [];
+			$('#addedCargosBody').html('<tr id="noAddedCargos"><td colspan="5" class="text-center text-muted">No cargos added yet</td></tr>');
+			$('#multipleCargoNumber').val('');
+			updateMultipleCargoCount();
+		}
+	});
+	
+	$('#multipleVehicleModal').on('hidden.bs.modal', function() {
+		$('#multipleVehicleSelect').val('');
 	});
 });
 </script>

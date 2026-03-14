@@ -199,6 +199,7 @@ def create_cargo_center(request):
         # Create cargo center
         cargo_center = CargoCenter.objects.create(
             center_name=data.get('centerName'),
+            branch_code=data.get('branchCode'),
             location=data.get('location'),
             is_active=data.get('isActive', True)
         )
@@ -231,6 +232,7 @@ def update_cargo_center(request, center_id):
         
         # Update fields
         cargo_center.center_name = data.get('centerName', cargo_center.center_name)
+        cargo_center.branch_code = data.get('branchCode', cargo_center.branch_code)
         cargo_center.location = data.get('location', cargo_center.location)
         cargo_center.is_active = data.get('isActive', cargo_center.is_active)
         cargo_center.save()
@@ -286,6 +288,7 @@ def get_cargo_center(request, center_id):
             'center': {
                 'id': cargo_center.id,
                 'centerName': cargo_center.center_name,
+                'branchCode': cargo_center.branch_code,
                 'location': cargo_center.location,
                 'isActive': cargo_center.is_active
             }
@@ -330,7 +333,6 @@ def create_vehicle(request):
             vehicle_type=data.get('vehicleType'),
             vehicle_model=data.get('vehicleModel'),
             company_owner=data.get('companyOwner'),
-            registration_number=data.get('registrationNumber'),
             plate_number=data.get('plateNumber'),
             max_weight=Decimal(str(data.get('maxWeight'))),
             chassis_number=data.get('chassisNumber'),
@@ -362,7 +364,6 @@ def update_vehicle(request, vehicle_id):
         vehicle.vehicle_type = data.get('vehicleType', vehicle.vehicle_type)
         vehicle.vehicle_model = data.get('vehicleModel', vehicle.vehicle_model)
         vehicle.company_owner = data.get('companyOwner', vehicle.company_owner)
-        vehicle.registration_number = data.get('registrationNumber', vehicle.registration_number)
         vehicle.plate_number = data.get('plateNumber', vehicle.plate_number)
         vehicle.max_weight = Decimal(str(data.get('maxWeight', vehicle.max_weight)))
         vehicle.chassis_number = data.get('chassisNumber', vehicle.chassis_number)
@@ -420,7 +421,6 @@ def get_vehicle(request, vehicle_id):
                 'vehicleType': vehicle.vehicle_type,
                 'vehicleModel': vehicle.vehicle_model,
                 'companyOwner': vehicle.company_owner,
-                'registrationNumber': vehicle.registration_number,
                 'plateNumber': vehicle.plate_number,
                 'maxWeight': str(vehicle.max_weight),
                 'chassisNumber': vehicle.chassis_number,
@@ -598,3 +598,33 @@ def all_cargos_view(request):
         'cargos': cargos,
     }
     return render(request, 'all-cargos.html', context)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_cargo_admin(request, cargo_id):
+    """API endpoint for admin to delete a cargo"""
+    try:
+        # Get cargo by ID
+        cargo = Cargo.objects.get(id=cargo_id)
+        
+        # Store cargo number for response
+        cargo_number = cargo.cargo_number
+        
+        # Delete the cargo
+        cargo.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Cargo {cargo_number} deleted successfully'
+        })
+        
+    except Cargo.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Cargo not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }, status=500)

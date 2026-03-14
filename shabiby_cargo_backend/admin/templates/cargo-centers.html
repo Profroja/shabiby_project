@@ -167,6 +167,7 @@
 														<tr>
 															<th>#</th>
 															<th>Center Name</th>
+															<th>Branch Code</th>
 															<th>Location</th>
 															<th>Status</th>
 															<th>Actions</th>
@@ -177,6 +178,7 @@
 														<tr>
 															<td>{{ forloop.counter }}</td>
 															<td><strong>{{ center.center_name }}</strong></td>
+															<td><span class="badge badge-primary">{{ center.branch_code }}</span></td>
 															<td>{{ center.location }}</td>
 															<td>
 																{% if center.is_active %}
@@ -196,7 +198,7 @@
 														</tr>
 														{% empty %}
 														<tr>
-															<td colspan="5" class="text-center">No cargo centers found. Click "Add New Center" to create one.</td>
+															<td colspan="6" class="text-center">No cargo centers found. Click "Add New Center" to create one.</td>
 														</tr>
 														{% endfor %}
 													</tbody>
@@ -239,30 +241,18 @@
 							</div>
 						</div>
 						<div class="row">
-							<div class="col-md-12">
+							<div class="col-md-6">
 								<div class="form-group">
-									<label for="location">Location <span class="text-danger">*</span></label>
-									<select class="form-control" id="location" name="location" required>
-										<option value="">Select Location</option>
-										<option value="Dar es Salaam">Dar es Salaam</option>
-										<option value="Dodoma">Dodoma</option>
-										<option value="Arusha">Arusha</option>
-										<option value="Mwanza">Mwanza</option>
-										<option value="Mbeya">Mbeya</option>
-										<option value="Morogoro">Morogoro</option>
-										<option value="Tanga">Tanga</option>
-										<option value="Moshi">Moshi</option>
-										<option value="Iringa">Iringa</option>
-										<option value="Tabora">Tabora</option>
-										<option value="Kigoma">Kigoma</option>
-										<option value="Songea">Songea</option>
-										<option value="Mtwara">Mtwara</option>
-										<option value="Lindi">Lindi</option>
-										<option value="Shinyanga">Shinyanga</option>
-										<option value="Singida">Singida</option>
-										<option value="Bukoba">Bukoba</option>
-										<option value="Musoma">Musoma</option>
-									</select>
+									<label for="branchCode">Branch Code (3 Letters) <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="branchCode" name="branchCode" placeholder="e.g., DAR, DOM, MWA" maxlength="3" pattern="[A-Z]{3}" style="text-transform: uppercase;" required>
+									<small class="form-text text-muted">3 uppercase letters (e.g., DAR for Dar es Salaam)</small>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="location">Location/Region <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="location" name="location" placeholder="e.g., Dar es Salaam, Dodoma, Arusha" required>
+									<small class="form-text text-muted">Enter the region or city name</small>
 								</div>
 							</div>
 						</div>
@@ -318,30 +308,18 @@
 							</div>
 						</div>
 						<div class="row">
-							<div class="col-md-12">
+							<div class="col-md-6">
 								<div class="form-group">
-									<label for="editLocation">Location <span class="text-danger">*</span></label>
-									<select class="form-control" id="editLocation" name="location" required>
-										<option value="">Select Location</option>
-										<option value="Dar es Salaam">Dar es Salaam</option>
-										<option value="Dodoma">Dodoma</option>
-										<option value="Arusha">Arusha</option>
-										<option value="Mwanza">Mwanza</option>
-										<option value="Mbeya">Mbeya</option>
-										<option value="Morogoro">Morogoro</option>
-										<option value="Tanga">Tanga</option>
-										<option value="Moshi">Moshi</option>
-										<option value="Iringa">Iringa</option>
-										<option value="Tabora">Tabora</option>
-										<option value="Kigoma">Kigoma</option>
-										<option value="Songea">Songea</option>
-										<option value="Mtwara">Mtwara</option>
-										<option value="Lindi">Lindi</option>
-										<option value="Shinyanga">Shinyanga</option>
-										<option value="Singida">Singida</option>
-										<option value="Bukoba">Bukoba</option>
-										<option value="Musoma">Musoma</option>
-									</select>
+									<label for="editBranchCode">Branch Code (3 Letters) <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="editBranchCode" name="branchCode" placeholder="e.g., DAR, DOM, MWA" maxlength="3" pattern="[A-Z]{3}" style="text-transform: uppercase;" required>
+									<small class="form-text text-muted">3 uppercase letters (e.g., DAR for Dar es Salaam)</small>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="form-group">
+									<label for="editLocation">Location/Region <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="editLocation" name="location" placeholder="e.g., Dar es Salaam, Dodoma, Arusha" required>
+									<small class="form-text text-muted">Enter the region or city name</small>
 								</div>
 							</div>
 						</div>
@@ -412,9 +390,21 @@
 		const formData = new FormData(form);
 		const data = {
 			centerName: formData.get('centerName'),
+			branchCode: formData.get('branchCode').toUpperCase(),
 			location: formData.get('location'),
 			isActive: document.getElementById('isActive').checked
 		};
+
+		// Show loading animation
+		Swal.fire({
+			title: 'Creating Cargo Center...',
+			html: 'Please wait while we add the new cargo center.',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
 
 		// Send data to backend API
 		fetch('/api/cargo-centers/create/', {
@@ -426,6 +416,7 @@
 		})
 		.then(response => response.json())
 		.then(result => {
+			Swal.close();
 			if (result.success) {
 				Swal.fire({
 					icon: 'success',
@@ -450,6 +441,7 @@
 			}
 		})
 		.catch(error => {
+			Swal.close();
 			console.error('Error:', error);
 			Swal.fire({
 				icon: 'error',
@@ -470,6 +462,7 @@
 				const center = result.center;
 				document.getElementById('editCenterId').value = centerId;
 				document.getElementById('editCenterName').value = center.centerName;
+				document.getElementById('editBranchCode').value = center.branchCode;
 				document.getElementById('editLocation').value = center.location;
 				document.getElementById('editIsActive').checked = center.isActive;
 				
@@ -515,10 +508,22 @@
 		const data = {
 			centerId: formData.get('centerId'),
 			centerName: formData.get('centerName'),
+			branchCode: formData.get('branchCode').toUpperCase(),
 			location: formData.get('location'),
 			isActive: document.getElementById('editIsActive').checked
 		};
 		const centerId = data.centerId;
+
+		// Show loading animation
+		Swal.fire({
+			title: 'Updating Cargo Center...',
+			html: 'Please wait while we update the cargo center.',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
 
 		// Send update request to backend API
 		fetch(`/api/cargo-centers/${centerId}/update/`, {
@@ -530,6 +535,7 @@
 		})
 		.then(response => response.json())
 		.then(result => {
+			Swal.close();
 			if (result.success) {
 				Swal.fire({
 					icon: 'success',
@@ -550,6 +556,7 @@
 			}
 		})
 		.catch(error => {
+			Swal.close();
 			console.error('Error:', error);
 			Swal.fire({
 				icon: 'error',

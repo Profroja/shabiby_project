@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cargo Group {{ cargo_group.group_id }}</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 11px;
+        }
+        
+        .container {
+            display: table;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #F37021;
+            padding-bottom: 10px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #000;
+        }
+        
+        .header h2 {
+            margin: 5px 0;
+            font-size: 18px;
+            color: #F37021;
+        }
+        
+        .header p {
+            margin: 3px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .content-wrapper {
+            display: table;
+            width: 100%;
+        }
+        
+        .left-section {
+            display: table-cell;
+            width: 70%;
+            vertical-align: top;
+            padding-right: 20px;
+        }
+        
+        .right-section {
+            display: table-cell;
+            width: 30%;
+            vertical-align: top;
+            text-align: center;
+            border-left: 2px solid #ddd;
+            padding-left: 20px;
+        }
+        
+        .info-box {
+            background: #f9f9f9;
+            border: 2px solid #F37021;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #F37021;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        table th {
+            background: #F37021;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 10px;
+        }
+        
+        table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .qr-section {
+            margin-top: 20px;
+        }
+        
+        .qr-section h3 {
+            font-size: 16px;
+            color: #F37021;
+            margin-bottom: 10px;
+        }
+        
+        .qr-code {
+            border: 3px solid #F37021;
+            padding: 10px;
+            background: white;
+            display: inline-block;
+            border-radius: 5px;
+        }
+        
+        .qr-code img {
+            width: 200px;
+            height: 200px;
+        }
+        
+        .group-id {
+            font-size: 18px;
+            font-weight: bold;
+            color: #F37021;
+            margin-top: 10px;
+            word-wrap: break-word;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 5px;
+            font-size: 11px;
+        }
+        
+        .instructions h4 {
+            margin: 0 0 8px 0;
+            color: #856404;
+            font-size: 13px;
+        }
+        
+        .instructions ol {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 3px 0;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        
+        .summary-stats {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            display: table-cell;
+            width: 33.33%;
+            text-align: center;
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+        }
+        
+        .stat-box .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #F37021;
+        }
+        
+        .stat-box .label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📦 SHABIBY CARGO - GROUPED SHIPMENT 📦</h1>
+            <h2>Multiple Cargo Onboarding Document</h2>
+            <p>Generated: {{ generated_date }} | Agent: {{ agent_name }}</p>
+        </div>
+        
+        <!-- Summary Statistics -->
+        <div class="summary-stats">
+            <div class="stat-box">
+                <div class="number">{{ cargos|length }}</div>
+                <div class="label">Total Cargos</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ cargo_group.group_id }}</div>
+                <div class="label">Group ID</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ cargo_group.status|upper }}</div>
+                <div class="label">Status</div>
+            </div>
+        </div>
+        
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Left Section - Cargo List -->
+            <div class="left-section">
+                <div class="info-box">
+                    <h3>📋 CARGO LIST ({{ cargos|length }} Items)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Cargo No.</th>
+                                <th>Origin</th>
+                                <th>Destination</th>
+                                <th>Sender</th>
+                                <th>Receiver</th>
+                                <th>Qty</th>
+                                <th>Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cargo in cargos %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td><strong>{{ cargo.cargo_number }}</strong></td>
+                                <td>{{ cargo.origin_branch.location }}</td>
+                                <td>{{ cargo.destination_branch.location }}</td>
+                                <td>{{ cargo.sender.full_name }}</td>
+                                <td>{{ cargo.receiver.full_name }}</td>
+                                <td>{{ cargo.quantity }}</td>
+                                <td>{{ cargo.weight|default:"N/A" }} kg</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="instructions">
+                    <h4>📌 INSTRUCTIONS FOR CONDUCTOR:</h4>
+                    <ol>
+                        <li><strong>Scan the QR code</strong> on the right side using the conductor mobile app</li>
+                        <li><strong>Verify all cargos</strong> listed above are loaded onto the vehicle</li>
+                        <li><strong>Confirm onboarding</strong> in the app - this will onboard ALL {{ cargos|length }} cargos at once</li>
+                        <li><strong>Keep this document</strong> with the vehicle during transit</li>
+                        <li><strong>At destination</strong>, scan the same QR code to offboard all cargos together</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Right Section - QR Code -->
+            <div class="right-section">
+                <div class="qr-section">
+                    <h3>🔍 SCAN TO ONBOARD</h3>
+                    <div class="qr-code">
+                        <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+                    </div>
+                    <div class="group-id">{{ cargo_group.group_id }}</div>
+                    <p style="margin-top: 15px; font-size: 11px; color: #666;">
+                        Scan this QR code to onboard or offboard all {{ cargos|length }} cargos in this group simultaneously.
+                    </p>
+                </div>
+                
+                <div class="info-box" style="margin-top: 20px; text-align: left;">
+                    <h3>ℹ️ GROUP INFO</h3>
+                    <p><strong>Created:</strong><br>{{ cargo_group.created_at|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Created By:</strong><br>{{ agent_name }}</p>
+                    <p><strong>Total Items:</strong><br>{{ cargos|length }} cargo(s)</p>
+                    <p><strong>Status:</strong><br><span style="color: #F37021; font-weight: bold;">{{ cargo_group.status|upper }}</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>SHABIBY CARGO</strong> | Multiple Cargo Onboarding System | Document ID: {{ cargo_group.group_id }}</p>
+            <p>This document is computer-generated and serves as proof of cargo grouping for batch processing.</p>
+        </div>
+    </div>
+</body>
+</html>

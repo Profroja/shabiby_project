@@ -220,6 +220,10 @@ def offboard_cargo(request):
         cargo.current_branch = cargo.destination_branch
         cargo.save()
         
+        # Send SMS notification to receiver
+        from sms_notification.sms_notification import send_cargo_arrival_sms
+        send_cargo_arrival_sms(cargo)
+        
         return JsonResponse({
             'success': True,
             'message': f'Cargo {cargo.cargo_number} offboarded successfully! Marked as arrived at {cargo.destination_branch.location}.'
@@ -239,6 +243,92 @@ def offboard_cargo(request):
         return JsonResponse({
             'success': False,
             'message': f'Error offboarding cargo: {str(e)}'
+        }, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def bulk_offboard_cargos(request):
+    """API endpoint to offboard multiple cargos at once (mark as arrived)"""
+    try:
+        data = json.loads(request.body)
+        cargo_ids = data.get('cargo_ids', [])
+        
+        if not cargo_ids:
+            return JsonResponse({
+                'success': False,
+                'message': 'At least one cargo ID is required'
+            }, status=400)
+        
+        # Get conductor's agent profile
+        conductor = request.user
+        conductor_agent = conductor.agent_profile if hasattr(conductor, 'agent_profile') else None
+        
+        if not conductor_agent:
+            return JsonResponse({
+                'success': False,
+                'message': 'Conductor profile not found'
+            }, status=400)
+        
+        # Get all cargos
+        cargos = Cargo.objects.filter(id__in=cargo_ids)
+        
+        if cargos.count() != len(cargo_ids):
+            return JsonResponse({
+                'success': False,
+                'message': 'Some cargos were not found'
+            }, status=404)
+        
+        # Check if all cargos are in shipped status
+        non_shipped = cargos.exclude(status='shipped')
+        if non_shipped.exists():
+            non_shipped_list = ', '.join([c.cargo_number for c in non_shipped])
+            return JsonResponse({
+                'success': False,
+                'message': f'Some cargos are not in shipped status: {non_shipped_list}'
+            }, status=400)
+        
+        # Verify this conductor shipped all these cargos
+        not_by_conductor = cargos.exclude(shipped_by=conductor_agent)
+        if not_by_conductor.exists():
+            return JsonResponse({
+                'success': False,
+                'message': 'You can only offboard cargos that you onboarded'
+            }, status=403)
+        
+        # Update all cargos to arrived status
+        offboarded_count = 0
+        offboarded_numbers = []
+        
+        from sms_notification.sms_notification import send_cargo_arrival_sms
+        
+        for cargo in cargos:
+            cargo.status = 'arrived'
+            cargo.arrived_at = timezone.now()
+            cargo.current_branch = cargo.destination_branch
+            cargo.save()
+            
+            # Send SMS notification to receiver
+            send_cargo_arrival_sms(cargo)
+            
+            offboarded_count += 1
+            offboarded_numbers.append(cargo.cargo_number)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{offboarded_count} cargo(s) offboarded successfully!',
+            'offboarded_count': offboarded_count,
+            'cargo_numbers': offboarded_numbers
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error offboarding cargos: {str(e)}'
         }, status=500)
 
 @login_required
@@ -342,3 +432,227 @@ def conductor_offboarded_cargos_view(request):
     }
     
     return render(request, 'conductor_offboarded_cargos.html', context)
+
+@login_required
+@require_http_methods(["GET"])
+def search_cargo_group(request):
+    """API endpoint to search for cargo group by QR code data"""
+    from cargo_management.models import CargoGroup
+    
+    qr_data = request.GET.get('qr_data', '').strip()
+    
+    if not qr_data:
+        return JsonResponse({
+            'success': False,
+            'message': 'QR code data is required'
+        }, status=400)
+    
+    try:
+        # Find cargo group by QR code data
+        cargo_group = CargoGroup.objects.prefetch_related(
+            'cargos__sender',
+            'cargos__receiver',
+            'cargos__origin_branch',
+            'cargos__destination_branch'
+        ).get(qr_code_data=qr_data)
+        
+        # Get all cargos in the group
+        cargos = cargo_group.cargos.all()
+        
+        # Check if all cargos are in registered status
+        non_registered = cargos.exclude(status='registered')
+        if non_registered.exists():
+            non_registered_list = ', '.join([c.cargo_number for c in non_registered])
+            return JsonResponse({
+                'success': False,
+                'message': f'Some cargos are not in registered status: {non_registered_list}'
+            }, status=400)
+        
+        # Prepare cargo data
+        cargo_list = []
+        for cargo in cargos:
+            cargo_list.append({
+                'id': cargo.id,
+                'cargo_number': cargo.cargo_number,
+                'origin': cargo.origin_branch.location,
+                'destination': cargo.destination_branch.location,
+                'quantity': cargo.quantity,
+                'description': cargo.cargo_description,
+                'sender_name': cargo.sender.full_name if cargo.sender else 'N/A',
+                'receiver_name': cargo.receiver.full_name if cargo.receiver else 'N/A',
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'group_id': cargo_group.group_id,
+            'total_cargos': cargos.count(),
+            'cargos': cargo_list
+        })
+        
+    except CargoGroup.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Cargo group not found. Please check the QR code.'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error searching cargo group: {str(e)}'
+        }, status=500)
+
+@login_required
+@require_http_methods(["GET"])
+def search_cargo_group_for_offboard(request):
+    """API endpoint to search for cargo group by QR code data for offboarding"""
+    from cargo_management.models import CargoGroup
+    
+    qr_data = request.GET.get('qr_data', '').strip()
+    
+    if not qr_data:
+        return JsonResponse({
+            'success': False,
+            'message': 'QR code data is required'
+        }, status=400)
+    
+    try:
+        # Find cargo group by QR code data
+        cargo_group = CargoGroup.objects.prefetch_related(
+            'cargos__sender',
+            'cargos__receiver',
+            'cargos__origin_branch',
+            'cargos__destination_branch'
+        ).get(qr_code_data=qr_data)
+        
+        # Get all cargos in the group
+        cargos = cargo_group.cargos.all()
+        
+        # Check if all cargos are in shipped status (for offboarding)
+        non_shipped = cargos.exclude(status='shipped')
+        if non_shipped.exists():
+            non_shipped_list = ', '.join([f"{c.cargo_number} ({c.get_status_display()})" for c in non_shipped])
+            return JsonResponse({
+                'success': False,
+                'message': f'Some cargos are not in shipped status: {non_shipped_list}. Only cargos "On Way" can be offboarded.'
+            }, status=400)
+        
+        # Prepare cargo data
+        cargo_list = []
+        for cargo in cargos:
+            cargo_list.append({
+                'id': cargo.id,
+                'cargo_number': cargo.cargo_number,
+                'origin': cargo.origin_branch.location,
+                'destination': cargo.destination_branch.location,
+                'quantity': cargo.quantity,
+                'description': cargo.cargo_description,
+                'sender_name': cargo.sender.full_name if cargo.sender else 'N/A',
+                'receiver_name': cargo.receiver.full_name if cargo.receiver else 'N/A',
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'group_id': cargo_group.group_id,
+            'total_cargos': cargos.count(),
+            'cargos': cargo_list
+        })
+        
+    except CargoGroup.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Cargo group not found. Please check the QR code.'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error searching cargo group: {str(e)}'
+        }, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def bulk_onboard_cargos(request):
+    """API endpoint to onboard multiple cargos at once"""
+    from cargo_management.models import Vehicle
+    
+    try:
+        data = json.loads(request.body)
+        cargo_ids = data.get('cargo_ids', [])
+        vehicle_id = data.get('vehicle_id')
+        
+        if not cargo_ids:
+            return JsonResponse({
+                'success': False,
+                'message': 'At least one cargo ID is required'
+            }, status=400)
+        
+        if not vehicle_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'Vehicle selection is required'
+            }, status=400)
+        
+        # Get vehicle
+        vehicle = Vehicle.objects.get(id=vehicle_id, is_active=True)
+        
+        # Get conductor's agent profile
+        conductor = request.user
+        conductor_agent = conductor.agent_profile if hasattr(conductor, 'agent_profile') else None
+        
+        if not conductor_agent:
+            return JsonResponse({
+                'success': False,
+                'message': 'Conductor profile not found'
+            }, status=400)
+        
+        # Get all cargos
+        cargos = Cargo.objects.filter(id__in=cargo_ids)
+        
+        if cargos.count() != len(cargo_ids):
+            return JsonResponse({
+                'success': False,
+                'message': 'Some cargos were not found'
+            }, status=404)
+        
+        # Check if all cargos are in registered status
+        non_registered = cargos.exclude(status='registered')
+        if non_registered.exists():
+            non_registered_list = ', '.join([c.cargo_number for c in non_registered])
+            return JsonResponse({
+                'success': False,
+                'message': f'Some cargos are not in registered status: {non_registered_list}'
+            }, status=400)
+        
+        # Update all cargos to shipped status
+        onboarded_count = 0
+        onboarded_numbers = []
+        
+        for cargo in cargos:
+            cargo.status = 'shipped'
+            cargo.shipped_by = conductor_agent
+            cargo.shipped_at = timezone.now()
+            cargo.assigned_vehicle = vehicle
+            cargo.save()
+            onboarded_count += 1
+            onboarded_numbers.append(cargo.cargo_number)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{onboarded_count} cargo(s) onboarded to vehicle {vehicle.plate_number} successfully!',
+            'onboarded_count': onboarded_count,
+            'cargo_numbers': onboarded_numbers
+        })
+        
+    except Vehicle.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Vehicle not found or inactive'
+        }, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error onboarding cargos: {str(e)}'
+        }, status=500)

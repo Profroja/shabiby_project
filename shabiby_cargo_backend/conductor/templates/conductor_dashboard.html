@@ -38,6 +38,20 @@
 			#mobile-header {
 				display: none !important;
 			}
+			
+			/* Remove gap on mobile for conductor badge */
+			.pcoded-main-container .pcoded-content {
+				padding-top: 0 !important;
+			}
+			
+			.page-wrapper {
+				padding-top: 0 !important;
+				margin-top: 0 !important;
+			}
+			
+			.main-body {
+				padding-top: 0 !important;
+			}
 		}
 		
 		/* Hide Upgrade to Pro floating button */
@@ -163,9 +177,9 @@
 							<!-- [ Main Content ] start -->
 							
 							<!-- Conductor Badge -->
-							<div class="row mb-4">
+							<div class="row" style="margin-top: 0; padding-top: 0;">
 								<div class="col-12">
-									<div class="text-center">
+									<div class="text-center" style="margin-bottom: 20px;">
 										<div class="badge badge-lg" style="background: linear-gradient(135deg, #4680ff 0%, #F37021 100%); color: white; padding: 15px 40px; border-radius: 50px; font-size: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
 											<i class="fas fa-user-tie mr-2"></i>
 											<strong>Conductor:</strong> {{ request.user.get_full_name }}
@@ -178,12 +192,12 @@
 								<!-- Onboard Cargo Button -->
 								<div class="col-xl-6 col-md-6 mb-4">
 									<a href="{% url 'conductor_onboard' %}" class="action-card-link">
-										<div class="card action-card" style="border: 3px solid #4680ff; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
-											<div class="card-body text-center" style="padding: 40px 20px;">
-												<div class="action-icon mb-3" style="font-size: 60px; color: #4680ff;">
+										<div class="card action-card" style="background: #011b53; border: none; border-radius: 10px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 20px 15px;">
+												<div class="action-icon mb-2" style="font-size: 40px; color: #fff;">
 													<i class="fas fa-truck-loading"></i>
 												</div>
-												<h3 class="mb-2" style="color: #4680ff; font-weight: 700;">Onboard Cargo</h3>
+												<h5 class="mb-0" style="color: #fff; font-weight: 600;">Onboard Cargo</h5>
 											</div>
 										</div>
 									</a>
@@ -192,12 +206,12 @@
 								<!-- Offboard Cargo Button -->
 								<div class="col-xl-6 col-md-6 mb-4">
 									<a href="{% url 'conductor_offboard' %}" class="action-card-link">
-										<div class="card action-card" style="border: 3px solid #F37021; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
-											<div class="card-body text-center" style="padding: 40px 20px;">
-												<div class="action-icon mb-3" style="font-size: 60px; color: #F37021;">
+										<div class="card action-card" style="background: #622905; border: none; border-radius: 10px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 20px 15px;">
+												<div class="action-icon mb-2" style="font-size: 40px; color: #fff;">
 													<i class="fas fa-dolly"></i>
 												</div>
-												<h3 class="mb-2" style="color: #F37021; font-weight: 700;">Offboard Cargo</h3>
+												<h5 class="mb-0" style="color: #fff; font-weight: 600;">Offboard Cargo</h5>
 											</div>
 										</div>
 									</a>
@@ -206,12 +220,12 @@
 								<!-- View Onboarded List Button -->
 								<div class="col-xl-6 col-md-6 mb-4">
 									<a href="{% url 'conductor_onboarded_cargos' %}" class="action-card-link">
-										<div class="card action-card" style="border: 3px solid #2ed8b6; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
-											<div class="card-body text-center" style="padding: 40px 20px;">
-												<div class="action-icon mb-3" style="font-size: 60px; color: #2ed8b6;">
+										<div class="card action-card" style="background: #035a48; border: none; border-radius: 10px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 20px 15px;">
+												<div class="action-icon mb-2" style="font-size: 40px; color: #fff;">
 													<i class="fas fa-list-alt"></i>
 												</div>
-												<h3 class="mb-2" style="color: #2ed8b6; font-weight: 700;">View Onboarded List</h3>
+												<h5 class="mb-0" style="color: #fff; font-weight: 600;">View Onboarded List</h5>
 											</div>
 										</div>
 									</a>
@@ -220,12 +234,12 @@
 								<!-- View Offboarded List Button -->
 								<div class="col-xl-6 col-md-6 mb-4">
 									<a href="{% url 'conductor_offboarded_cargos' %}" class="action-card-link">
-										<div class="card action-card" style="border: 3px solid #FFB64D; border-radius: 15px; transition: all 0.3s ease; cursor: pointer;">
-											<div class="card-body text-center" style="padding: 40px 20px;">
-												<div class="action-icon mb-3" style="font-size: 60px; color: #FFB64D;">
-													<i class="fas fa-clipboard-check"></i>
+										<div class="card action-card" style="background: #78521d; border: none; border-radius: 10px; transition: all 0.3s ease; cursor: pointer;">
+											<div class="card-body text-center" style="padding: 20px 15px;">
+												<div class="action-icon mb-2" style="font-size: 40px; color: #fff;">
+													<i class="fas fa-clipboard-list"></i>
 												</div>
-												<h3 class="mb-2" style="color: #FFB64D; font-weight: 700;">View Offboarded List</h3>
+												<h5 class="mb-0" style="color: #fff; font-weight: 600;">View Offboarded List</h5>
 											</div>
 										</div>
 									</a>
@@ -258,19 +272,15 @@
 								/* Mobile responsive */
 								@media (max-width: 768px) {
 									.action-card .card-body {
-										padding: 30px 15px !important;
+										padding: 15px 10px !important;
 									}
 									
 									.action-icon {
-										font-size: 50px !important;
+										font-size: 35px !important;
 									}
 									
-									.action-card h3 {
-										font-size: 20px !important;
-									}
-									
-									.action-card p {
-										font-size: 13px !important;
+									.action-card h5 {
+										font-size: 16px !important;
 									}
 								}
 							</style>

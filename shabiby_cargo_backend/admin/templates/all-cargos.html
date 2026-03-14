@@ -194,12 +194,16 @@
 																data-pickup-customer-location="{{ cargo.pickup_customer_location|default:'-' }}"
 																data-delivered-by="{{ cargo.delivered_by_agent.user.get_full_name|default:'-' }}"
 																data-delivered-at="{{ cargo.delivered_at|date:'d M Y H:i'|default:'-' }}"
+																data-cargo-image="{% if cargo.cargo_image %}{{ cargo.cargo_image.url }}{% endif %}"
 																title="View Details">
 																<i class="feather icon-eye"></i>
 															</button>
-															<a href="{% url 'thermal_receipt' cargo.id %}" target="_blank" class="btn btn-sm btn-danger" title="Download Receipt PDF">
+															<a href="{% url 'thermal_receipt' cargo.id %}" target="_blank" class="btn btn-sm btn-success" title="Download Receipt PDF">
 																<i class="fas fa-file-pdf"></i>
 															</a>
+															<button class="btn btn-sm btn-danger" onclick="deleteCargoAdmin({{ cargo.id }}, '{{ cargo.cargo_number }}')" title="Delete Cargo">
+																<i class="feather icon-trash-2"></i>
+															</button>
 															</td>
 														</tr>
 														{% empty %}
@@ -332,6 +336,14 @@
 					</div>
 				</div>
 
+				<!-- Cargo Image Section -->
+				<div id="cargo-image-section" style="border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 10px; display: none;">
+					<div style="font-weight: bold; text-decoration: underline; margin-bottom: 8px; font-size: 13px;">CARGO IMAGE</div>
+					<div style="text-align: center;">
+						<img id="modal-cargo-image" src="" alt="Cargo Image" style="max-width: 100%; max-height: 300px; border: 2px solid #ddd; border-radius: 5px;">
+					</div>
+				</div>
+
 				<!-- Footer -->
 				<div style="text-align: center; font-size: 11px; color: #666;">
 					<div style="font-weight: bold; margin-bottom: 3px;">SHABIBY CARGO</div>
@@ -375,6 +387,7 @@ $(document).ready(function() {
 		const pickupCustomerLocation = btn.data('pickup-customer-location');
 		const deliveredBy = btn.data('delivered-by');
 		const deliveredAt = btn.data('delivered-at');
+		const cargoImage = btn.data('cargo-image');
 		
 		// Populate modal with cargo details
 		$('#modal-cargo-number').text(cargoNumber);
@@ -402,6 +415,14 @@ $(document).ready(function() {
 			$('#pickup-details-section').show();
 		} else {
 			$('#pickup-details-section').hide();
+		}
+		
+		// Display cargo image if available
+		if (cargoImage && cargoImage !== '') {
+			$('#modal-cargo-image').attr('src', cargoImage);
+			$('#cargo-image-section').show();
+		} else {
+			$('#cargo-image-section').hide();
 		}
 		
 		// Show modal
@@ -491,5 +512,72 @@ $(document).ready(function() {
 		$('#filterBranch').append('<option value="' + branch + '">' + branch + '</option>');
 	});
 });
+
+// Delete cargo function for admin
+function deleteCargoAdmin(cargoId, cargoNumber) {
+	Swal.fire({
+		title: 'Delete Cargo?',
+		html: `Are you sure you want to delete cargo <strong>${cargoNumber}</strong>?<br><br>This action cannot be undone.`,
+		icon: 'warning',
+		showCancelButton: true,
+		confirmButtonColor: '#dc3545',
+		cancelButtonColor: '#6c757d',
+		confirmButtonText: 'Yes, Delete',
+		cancelButtonText: 'Cancel'
+	}).then((result) => {
+		if (result.isConfirmed) {
+			// Show loading animation
+			Swal.fire({
+				title: 'Deleting Cargo...',
+				html: 'Please wait while we delete the cargo.',
+				allowOutsideClick: false,
+				allowEscapeKey: false,
+				didOpen: () => {
+					Swal.showLoading();
+				}
+			});
+
+			// Send delete request to backend
+			fetch(`/api/admin/cargo/delete/${cargoId}/`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': '{{ csrf_token }}'
+				}
+			})
+			.then(response => response.json())
+			.then(result => {
+				Swal.close();
+				if (result.success) {
+					Swal.fire({
+						icon: 'success',
+						title: 'Deleted!',
+						text: 'Cargo has been deleted successfully.',
+						confirmButtonColor: '#4099ff'
+					}).then(() => {
+						location.reload();
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error!',
+						text: result.message || 'Failed to delete cargo.',
+						confirmButtonColor: '#4099ff'
+					});
+				}
+			})
+			.catch(error => {
+				Swal.close();
+				console.error('Error:', error);
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: 'Failed to delete cargo. Please try again.',
+					confirmButtonColor: '#4099ff'
+				});
+			});
+		}
+	});
+}
 </script>
 {% endblock %}

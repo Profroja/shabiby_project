@@ -27,4 +27,5 @@ urlpatterns = [
     path('branch-agent/', include('branch_agent.urls')),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     re_path(r'^assets/(?P<path>.*)$', serve, {'document_root': settings.ASSETS_ROOT}),
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]

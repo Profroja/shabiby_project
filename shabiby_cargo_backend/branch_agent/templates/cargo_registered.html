@@ -1,0 +1,648 @@
+{% extends 'branchagent_dashboard.html' %}
+{% load static %}
+
+{% block title %}Registered Cargos - 📦 Shabiby Cargo{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="page-header">
+	<div class="page-block">
+		<div class="row align-items-center">
+			<div class="col-md-12">
+				<div class="page-header-title">
+					<h5 class="m-b-10">Mizigo Iliyosajiliwa (Registered Cargos)</h5>
+				</div>
+				<ul class="breadcrumb">
+					<li class="breadcrumb-item"><a href="{% url 'branchagent_dashboard' %}"><i class="feather icon-home"></i></a></li>
+					<li class="breadcrumb-item"><a href="#!">Cargo Management</a></li>
+					<li class="breadcrumb-item"><a href="#!">Registered Cargos</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="row">
+	<div class="col-xl-12">
+		<div class="card">
+			<div class="card-header">
+				<h5>📦 Registered Cargo Shipments</h5>
+				<span class="d-block m-t-5">All registered cargos waiting to be onboarded</span>
+			</div>
+			<div class="card-body">
+				<!-- Filter Controls -->
+				<div class="row mb-4">
+					<div class="col-md-3">
+						<label for="filterDate"><strong>Single Date</strong></label>
+						<input type="date" class="form-control" id="filterDate" placeholder="Select date">
+					</div>
+					<div class="col-md-3">
+						<label for="filterStartDate"><strong>Date Range - Start</strong></label>
+						<input type="date" class="form-control" id="filterStartDate" placeholder="Start date">
+					</div>
+					<div class="col-md-3">
+						<label for="filterEndDate"><strong>Date Range - End</strong></label>
+						<input type="date" class="form-control" id="filterEndDate" placeholder="End date">
+					</div>
+					<div class="col-md-3">
+						<label for="filterDestination"><strong>Destination</strong></label>
+						<select class="form-control" id="filterDestination">
+							<option value="">All Destinations</option>
+							{% for branch in branches %}
+								<option value="{{ branch.id }}">{{ branch.location }}</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+				<div class="row mb-3">
+					<div class="col-md-12 text-right">
+						<button class="btn btn-secondary" id="clearFiltersBtn">
+							<i class="feather icon-x"></i> Clear Filters
+						</button>
+						<button class="btn btn-primary" id="applyFiltersBtn">
+							<i class="feather icon-filter"></i> Apply Filters
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="card-body table-border-style">
+				<div class="table-responsive">
+					<table class="table table-hover" id="registeredCargosTable">
+						<thead>
+							<tr>
+								<th><input type="checkbox" id="selectAllCargos" title="Select All"></th>
+								<th>#</th>
+								<th>Cargo/Parcel No.</th>
+								<th>Origin</th>
+								<th>Destination</th>
+								<th>Sender Name</th>
+								<th>Sender Mobile</th>
+								<th>Receiver Name</th>
+								<th>Receiver Mobile</th>
+								<th>Registered By</th>
+								<th>Register Date</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody id="cargosTableBody">
+							{% for cargo in cargos %}
+							<tr data-cargo-id="{{ cargo.id }}" 
+								data-destination="{{ cargo.destination_branch.id }}" 
+								data-date="{{ cargo.created_at|date:'Y-m-d' }}">
+								<td><input type="checkbox" class="cargo-checkbox" value="{{ cargo.id }}" data-cargo-number="{{ cargo.cargo_number }}"></td>
+								<td>{{ forloop.counter }}</td>
+								<td><strong style="color: #F37021;">{{ cargo.cargo_number }}</strong></td>
+								<td>{{ cargo.origin_branch.location }}</td>
+								<td>{{ cargo.destination_branch.location }}</td>
+								<td>{{ cargo.sender.full_name }}</td>
+								<td>{{ cargo.sender.mobile_number }}</td>
+								<td>{{ cargo.receiver.full_name }}</td>
+								<td>{{ cargo.receiver.mobile_number }}</td>
+								<td>
+									{% if cargo.registered_by %}
+										{{ cargo.registered_by.user.get_full_name }}
+									{% else %}
+										<span class="text-muted">N/A</span>
+									{% endif %}
+								</td>
+								<td>{{ cargo.created_at|date:"d M Y H:i" }}</td>
+								<td>
+									<button class="btn btn-sm btn-info" onclick="viewCargoDetails({{ cargo.id }})" title="View Details">
+										<i class="feather icon-eye"></i> View
+									</button>
+									<a href="{% url 'thermal_receipt' cargo.id %}" class="btn btn-sm btn-success" title="Print Receipt" target="_blank">
+										<i class="feather icon-printer"></i> Print
+									</a>
+									<button class="btn btn-sm btn-danger" onclick="deleteCargoRegistration({{ cargo.id }}, '{{ cargo.cargo_number }}')" title="Delete Cargo">
+										<i class="feather icon-trash-2"></i> Delete
+									</button>
+								</td>
+							</tr>
+							{% empty %}
+							<tr id="noDataRow">
+								<td colspan="12" class="text-center text-muted">No registered cargos found</td>
+							</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+				<!-- Multiple Onboarding Button -->
+				<div class="card-footer">
+					<div class="row">
+						<div class="col-md-12">
+							<button class="btn btn-warning btn-lg" id="groupCargosBtn" disabled>
+								<i class="feather icon-package"></i> Group Selected Cargos for Onboarding (<span id="selectedCount">0</span> selected)
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Cargo Details Modal -->
+<div class="modal fade" id="cargoDetailsModal" tabindex="-1" role="dialog" aria-labelledby="cargoDetailsModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header bg-primary text-white">
+				<h5 class="modal-title" id="cargoDetailsModalLabel">📦 Cargo Details</h5>
+				<button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body" id="cargoDetailsContent">
+				<!-- Content will be loaded via AJAX -->
+				<div class="text-center">
+					<div class="spinner-border text-primary" role="status">
+						<span class="sr-only">Loading...</span>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+	// Get CSRF token
+	const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+	
+	// Automatic filter for single date - triggers on change
+	$('#filterDate').on('change', function() {
+		filterCargosAutomatic();
+	});
+	
+	// Automatic filter for destination - triggers on change
+	$('#filterDestination').on('change', function() {
+		filterCargosAutomatic();
+	});
+	
+	// Apply filters button - for date range only
+	$('#applyFiltersBtn').on('click', function() {
+		filterCargosWithRange();
+	});
+	
+	// Clear filters
+	$('#clearFiltersBtn').on('click', function() {
+		$('#filterDate').val('');
+		$('#filterStartDate').val('');
+		$('#filterEndDate').val('');
+		$('#filterDestination').val('');
+		filterCargosAutomatic();
+	});
+	
+	// Select all checkboxes
+	$('#selectAllCargos').on('change', function() {
+		const isChecked = $(this).is(':checked');
+		$('.cargo-checkbox:visible').prop('checked', isChecked);
+		updateSelectedCount();
+	});
+	
+	// Individual checkbox change
+	$(document).on('change', '.cargo-checkbox', function() {
+		updateSelectedCount();
+		
+		// Update "select all" checkbox state
+		const totalVisible = $('.cargo-checkbox:visible').length;
+		const totalChecked = $('.cargo-checkbox:visible:checked').length;
+		$('#selectAllCargos').prop('checked', totalVisible > 0 && totalVisible === totalChecked);
+	});
+	
+	// Update selected count and button state
+	function updateSelectedCount() {
+		const selectedCount = $('.cargo-checkbox:checked').length;
+		$('#selectedCount').text(selectedCount);
+		
+		if (selectedCount > 0) {
+			$('#groupCargosBtn').prop('disabled', false);
+		} else {
+			$('#groupCargosBtn').prop('disabled', true);
+		}
+	}
+	
+	// Group cargos button click
+	$('#groupCargosBtn').on('click', function() {
+		const selectedCargoIds = [];
+		const selectedCargoNumbers = [];
+		
+		$('.cargo-checkbox:checked').each(function() {
+			selectedCargoIds.push($(this).val());
+			selectedCargoNumbers.push($(this).data('cargo-number'));
+		});
+		
+		if (selectedCargoIds.length === 0) {
+			Swal.fire({
+				icon: 'warning',
+				title: 'No Cargos Selected',
+				text: 'Please select at least one cargo to group for onboarding',
+				confirmButtonText: 'OK'
+			});
+			return;
+		}
+		
+		// Show confirmation
+		Swal.fire({
+			title: 'Group Cargos for Onboarding?',
+			html: `You have selected <strong>${selectedCargoIds.length}</strong> cargo(s):<br><br>${selectedCargoNumbers.join(', ')}<br><br>This will create a grouped shipment with a single QR code for multiple onboarding.`,
+			icon: 'question',
+			showCancelButton: true,
+			confirmButtonText: 'Yes, Group Them',
+			cancelButtonText: 'Cancel',
+			confirmButtonColor: '#28a745'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				groupCargos(selectedCargoIds);
+			}
+		});
+	});
+	
+	// Function to group cargos
+	function groupCargos(cargoIds) {
+		// Show loading
+		Swal.fire({
+			title: 'Creating Cargo Group...',
+			html: 'Please wait while we group the selected cargos',
+			allowOutsideClick: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
+		
+		// Send AJAX request to create cargo group
+		$.ajax({
+			url: '/branch-agent/api/create-cargo-group/',
+			method: 'POST',
+			headers: {
+				'X-CSRFToken': csrftoken
+			},
+			contentType: 'application/json',
+			data: JSON.stringify({
+				cargo_ids: cargoIds
+			}),
+			success: function(response) {
+				if (response.success) {
+					// Close the loading dialog
+					Swal.close();
+					
+					// Redirect to print page
+					window.location.href = `/branch-agent/multiple-cargo-print/${response.group_id}/`;
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: response.message || 'Failed to create cargo group',
+						confirmButtonText: 'OK'
+					});
+				}
+			},
+			error: function(xhr) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'An error occurred while creating the cargo group',
+					confirmButtonText: 'OK'
+				});
+			}
+		});
+	}
+	
+	// Automatic filter function (single date + destination only)
+	function filterCargosAutomatic() {
+		const singleDate = $('#filterDate').val();
+		const destination = $('#filterDestination').val();
+		
+		let visibleCount = 0;
+		
+		$('#cargosTableBody tr').each(function() {
+			if ($(this).attr('id') === 'noDataRow') return;
+			
+			const row = $(this);
+			const cargoDate = row.data('date');
+			const cargoDestination = row.data('destination').toString();
+			
+			let showRow = true;
+			
+			// Filter by single date
+			if (singleDate && cargoDate !== singleDate) {
+				showRow = false;
+			}
+			
+			// Filter by destination
+			if (destination && cargoDestination !== destination) {
+				showRow = false;
+			}
+			
+			if (showRow) {
+				row.show();
+				visibleCount++;
+			} else {
+				row.hide();
+			}
+		});
+		
+		// Show/hide no data message
+		if (visibleCount === 0) {
+			if ($('#noDataRow').length === 0) {
+				$('#cargosTableBody').append('<tr id="noDataRow"><td colspan="12" class="text-center text-muted">No cargos match the selected filters</td></tr>');
+			} else {
+				$('#noDataRow').show();
+			}
+		} else {
+			$('#noDataRow').hide();
+		}
+		
+		// Update row numbers (second td, first is checkbox)
+		let counter = 1;
+		$('#cargosTableBody tr:visible').each(function() {
+			if ($(this).attr('id') !== 'noDataRow') {
+				$(this).find('td:eq(1)').text(counter++);
+			}
+		});
+	}
+	
+	// Filter with date range (button-triggered)
+	function filterCargosWithRange() {
+		const singleDate = $('#filterDate').val();
+		const startDate = $('#filterStartDate').val();
+		const endDate = $('#filterEndDate').val();
+		const destination = $('#filterDestination').val();
+		
+		let visibleCount = 0;
+		
+		$('#cargosTableBody tr').each(function() {
+			if ($(this).attr('id') === 'noDataRow') return;
+			
+			const row = $(this);
+			const cargoDate = row.data('date');
+			const cargoDestination = row.data('destination').toString();
+			
+			let showRow = true;
+			
+			// Filter by single date
+			if (singleDate && cargoDate !== singleDate) {
+				showRow = false;
+			}
+			
+			// Filter by date range
+			if (startDate && cargoDate < startDate) {
+				showRow = false;
+			}
+			if (endDate && cargoDate > endDate) {
+				showRow = false;
+			}
+			
+			// Filter by destination
+			if (destination && cargoDestination !== destination) {
+				showRow = false;
+			}
+			
+			if (showRow) {
+				row.show();
+				visibleCount++;
+			} else {
+				row.hide();
+			}
+		});
+		
+		// Show/hide no data message
+		if (visibleCount === 0) {
+			if ($('#noDataRow').length === 0) {
+				$('#cargosTableBody').append('<tr id="noDataRow"><td colspan="12" class="text-center text-muted">No cargos match the selected filters</td></tr>');
+			} else {
+				$('#noDataRow').show();
+			}
+		} else {
+			$('#noDataRow').hide();
+		}
+		
+		// Update row numbers (second td, first is checkbox)
+		let counter = 1;
+		$('#cargosTableBody tr:visible').each(function() {
+			if ($(this).attr('id') !== 'noDataRow') {
+				$(this).find('td:eq(1)').text(counter++);
+			}
+		});
+	}
+});
+
+// View cargo details
+function viewCargoDetails(cargoId) {
+	$('#cargoDetailsModal').modal('show');
+	$('#cargoDetailsContent').html(`
+		<div class="text-center">
+			<div class="spinner-border text-primary" role="status">
+				<span class="sr-only">Loading...</span>
+			</div>
+			<p class="mt-2">Loading cargo details...</p>
+		</div>
+	`);
+	
+	// Fetch cargo details via AJAX
+	$.ajax({
+		url: `/branch-agent/api/cargo/details/${cargoId}/`,
+		method: 'GET',
+		success: function(response) {
+			if (response.success && response.cargo) {
+				displayCargoDetails(response.cargo);
+			} else {
+				$('#cargoDetailsContent').html(`
+					<div class="alert alert-danger">
+						<i class="feather icon-alert-circle"></i> Failed to load cargo details
+					</div>
+				`);
+			}
+		},
+		error: function() {
+			$('#cargoDetailsContent').html(`
+				<div class="alert alert-danger">
+					<i class="feather icon-alert-circle"></i> Error loading cargo details
+				</div>
+			`);
+		}
+	});
+}
+
+// Display cargo details
+function displayCargoDetails(cargo) {
+	const html = `
+		<div style="font-family: 'Courier New', monospace; border: 3px dashed #333; padding: 25px; background: #f9f9f9;">
+			<div style="text-align: center; border-bottom: 3px dashed #000; padding-bottom: 20px; margin-bottom: 20px;">
+				<h3 style="margin: 0; font-weight: bold; color: #000; font-size: 24px;">📦 SHABIBY CARGO 📦</h3>
+				<p style="margin: 10px 0; font-size: 18px; color: #000; font-weight: bold;">CARGO REGISTRATION DETAILS</p>
+			</div>
+			
+			<div style="margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">CARGO INFORMATION</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Cargo Number:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 20px;">${cargo.cargo_number}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Receipt Number:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receipt_number || 'N/A'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Tracking Number:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.tracking_number || 'N/A'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Description:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.description}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Quantity:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.quantity} pcs</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Weight:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.weight ? cargo.weight + ' kg' : 'Not specified'}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Cargo Value:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">TZS ${parseFloat(cargo.cargo_value).toLocaleString()}</td>
+					</tr>
+					<tr style="background: #fff3cd;">
+						<td style="padding: 10px 5px;"><strong style="color: #000; font-size: 20px;">Shipping Fee:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 22px;">TZS ${parseFloat(cargo.shipping_amount).toLocaleString()}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">ROUTE INFORMATION</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Origin:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 20px;">${cargo.origin}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Destination:</strong></td>
+						<td style="text-align: right; color: #F37021; font-weight: bold; font-size: 20px;">${cargo.destination}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">SENDER DETAILS</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.sender_name}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.sender_phone}</td>
+					</tr>
+				</table>
+			</div>
+			
+			<div style="border-top: 3px dashed #000; padding-top: 15px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">RECEIVER DETAILS</strong>
+				<table style="width: 100%; margin-top: 12px; font-size: 18px; color: #000;">
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Name:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receiver_name}</td>
+					</tr>
+					<tr>
+						<td style="padding: 8px 0;"><strong style="color: #000; font-size: 18px;">Phone:</strong></td>
+						<td style="text-align: right; color: #000; font-weight: bold; font-size: 18px;">${cargo.receiver_phone}</td>
+					</tr>
+				</table>
+			</div>
+			
+			${cargo.cargo_image ? `
+			<div style="border-top: 3px dashed #000; padding-top: 20px; margin-bottom: 20px;">
+				<strong style="text-decoration: underline; color: #000; font-size: 20px; font-weight: bold;">CARGO IMAGE</strong>
+				<div style="text-align: center; margin-top: 15px;">
+					<img src="${cargo.cargo_image}" alt="Cargo Image" style="max-width: 100%; max-height: 300px; border: 3px solid #333; border-radius: 5px;">
+				</div>
+			</div>
+			` : ''}
+			
+			<div style="border-top: 3px dashed #000; padding-top: 20px; text-align: center;">
+				<p style="margin: 8px 0; font-size: 18px; color: #000; font-weight: bold;">Status: <strong style="color: #F37021; font-size: 20px;">REGISTERED</strong></p>
+				<p style="margin: 8px 0; font-size: 16px; color: #666;">Waiting to be onboarded</p>
+			</div>
+		</div>
+	`;
+	
+	$('#cargoDetailsContent').html(html);
+}
+
+// Delete cargo registration
+function deleteCargoRegistration(cargoId, cargoNumber) {
+	Swal.fire({
+		title: 'Delete Cargo?',
+		html: `Are you sure you want to delete cargo <strong>${cargoNumber}</strong>?<br><br>This action cannot be undone.`,
+		icon: 'warning',
+		showCancelButton: true,
+		confirmButtonColor: '#dc3545',
+		cancelButtonColor: '#6c757d',
+		confirmButtonText: 'Yes, Delete',
+		cancelButtonText: 'Cancel'
+	}).then((result) => {
+		if (result.isConfirmed) {
+			// Show loading animation
+			Swal.fire({
+				title: 'Deleting Cargo...',
+				html: 'Please wait while we delete the cargo registration.',
+				allowOutsideClick: false,
+				allowEscapeKey: false,
+				didOpen: () => {
+					Swal.showLoading();
+				}
+			});
+
+			// Send delete request to backend
+			fetch(`/branch-agent/api/cargo/delete/${cargoId}/`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+				}
+			})
+			.then(response => response.json())
+			.then(result => {
+				Swal.close();
+				if (result.success) {
+					Swal.fire({
+						icon: 'success',
+						title: 'Deleted!',
+						text: 'Cargo registration has been deleted successfully.',
+						confirmButtonColor: '#4099ff'
+					}).then(() => {
+						location.reload();
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error!',
+						text: result.message || 'Failed to delete cargo registration.',
+						confirmButtonColor: '#4099ff'
+					});
+				}
+			})
+			.catch(error => {
+				Swal.close();
+				console.error('Error:', error);
+				Swal.fire({
+					icon: 'error',
+					title: 'Error!',
+					text: 'Failed to delete cargo registration. Please try again.',
+					confirmButtonColor: '#4099ff'
+				});
+			});
+		}
+	});
+}
+</script>
+{% endblock %}

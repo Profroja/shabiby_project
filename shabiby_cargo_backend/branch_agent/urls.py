@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     path('all-cargos/', views.all_cargos_view, name='branchagent_all_cargos'),
-    path('registered-cargos/', views.registered_cargos_view, name='registered_cargos'),
+    path('registered-cargos/', views.registered_cargos_view, name='branchagent_registerd'),
     path('in-transit/', views.in_transit_cargos_view, name='in_transit_cargos'),
     path('onboarded/', views.onboarded_cargos_view, name='onboarded_cargos'),
     path('offboarded/', views.offboarded_cargos_view, name='branchagent_offboarded_cargos'),
@@ -18,4 +18,9 @@ urlpatterns = [
     # API endpoints
     path('api/cargo/deliver/', views.deliver_cargo_api, name='api_deliver_cargo'),
     path('api/cargo/search/', views.search_cargo_api, name='api_search_cargo'),
+    path('api/cargo/details/<int:cargo_id>/', views.cargo_details_api, name='api_cargo_details'),
+    path('api/cargo/delete/<int:cargo_id>/', views.delete_cargo_api, name='api_delete_cargo'),
+    path('api/create-cargo-group/', views.create_cargo_group_api, name='api_create_cargo_group'),
+    path('cargo-group-pdf/<str:group_id>/', views.generate_cargo_group_pdf, name='cargo_group_pdf'),
+    path('multiple-cargo-print/<str:group_id>/', views.multiple_cargo_print_view, name='multiple_cargo_print'),
 ]

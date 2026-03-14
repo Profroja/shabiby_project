@@ -185,6 +185,7 @@
 																data-pickup-customer-location="{{ cargo.pickup_customer_location|default:'-' }}"
 																data-delivered-by="{{ cargo.delivered_by_agent.user.get_full_name|default:'-' }}"
 																data-delivered-at="{{ cargo.delivered_at|date:'d M Y H:i'|default:'-' }}"
+																data-cargo-image="{% if cargo.cargo_image %}{{ cargo.cargo_image.url }}{% endif %}"
 																title="View Details">
 																<i class="feather icon-eye"></i>
 															</button>
@@ -323,6 +324,14 @@
 					</div>
 				</div>
 
+				<!-- Cargo Image Section -->
+				<div id="cargo-image-section" style="border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 10px; display: none;">
+					<div style="font-weight: bold; text-decoration: underline; margin-bottom: 8px; font-size: 13px;">CARGO IMAGE</div>
+					<div style="text-align: center;">
+						<img id="modal-cargo-image" src="" alt="Cargo Image" style="max-width: 100%; max-height: 300px; border: 2px solid #ddd; border-radius: 5px;">
+					</div>
+				</div>
+
 				<!-- Footer -->
 				<div style="text-align: center; font-size: 11px; color: #666;">
 					<div style="font-weight: bold; margin-bottom: 3px;">SHABIBY CARGO</div>
@@ -366,6 +375,7 @@ $(document).ready(function() {
 		const pickupCustomerLocation = btn.data('pickup-customer-location');
 		const deliveredBy = btn.data('delivered-by');
 		const deliveredAt = btn.data('delivered-at');
+		const cargoImage = btn.data('cargo-image');
 		
 		// Populate modal with cargo details
 		$('#modal-cargo-number').text(cargoNumber);
@@ -393,6 +403,14 @@ $(document).ready(function() {
 			$('#pickup-details-section').show();
 		} else {
 			$('#pickup-details-section').hide();
+		}
+		
+		// Display cargo image if available
+		if (cargoImage && cargoImage !== '') {
+			$('#modal-cargo-image').attr('src', cargoImage);
+			$('#cargo-image-section').show();
+		} else {
+			$('#cargo-image-section').hide();
 		}
 		
 		// Show modal

@@ -98,6 +98,7 @@
 						</a>
 						<ul class="pcoded-submenu">
 							<li><a href="{% url 'branchagent_all_cargos' %}">All Cargos</a></li>
+							<li><a href="{% url 'branchagent_registerd' %}">Mizigo iliyosajiliwa</a></li>
 							<li><a href="{% url 'branchagent_offboarded_cargos' %}">Offboarded (Arrived at Branch)</a></li>
 							<li><a href="{% url 'branchagent_delivered_cargos' %}">Customer Delivered</a></li>
 						</ul>
@@ -194,7 +195,7 @@
 									<a href="{% url 'customer_delivery' %}" style="text-decoration: none;">
 										<div class="card action-card bg-c-green" style="cursor: pointer; transition: all 0.3s ease;">
 											<div class="card-body text-center" style="padding: 40px 20px;">
-												<h3 class="text-white" style="font-size: 28px; font-weight: bold; margin: 0;">Customer Delivery</h3>
+												<h3 class="text-white" style="font-size: 28px; font-weight: bold; margin: 0;">Kabidhi Mzigo</h3>
 												<p class="text-white mt-2" style="font-size: 16px; margin: 10px 0 0 0;">Mark cargo as delivered to customer</p>
 											</div>
 										</div>
@@ -263,6 +264,33 @@
 							<!-- Register Cargo Modal -->
 							<div class="modal fade" id="registerCargoModal" tabindex="-1" role="dialog" aria-labelledby="registerCargoModalLabel" aria-hidden="true">
 								<div class="modal-dialog modal-lg" role="document">
+									<style>
+														/* Larger fonts for mobile devices */
+														#registerCargoModal .form-control,
+														#registerCargoModal .custom-file-label,
+														#registerCargoModal label,
+														#registerCargoModal .form-text {
+															font-size: 16px !important;
+														}
+														#registerCargoModal h6 {
+															font-size: 18px !important;
+														}
+														#registerCargoModal .btn {
+															font-size: 16px !important;
+															padding: 10px 20px !important;
+														}
+														@media (max-width: 768px) {
+															#registerCargoModal .form-control,
+															#registerCargoModal .custom-file-label,
+															#registerCargoModal label,
+															#registerCargoModal .form-text {
+																font-size: 18px !important;
+															}
+															#registerCargoModal h6 {
+																font-size: 20px !important;
+															}
+														}
+													</style>
 									<div class="modal-content">
 										<div class="modal-header bg-primary">
 											<h5 class="modal-title text-white" id="registerCargoModalLabel">
@@ -292,7 +320,7 @@
 													</div>
 												</div>
 												<div class="form-group">
-													<label for="sender_branch">Branch Center <span class="text-danger">*</span></label>
+													<label for="sender_branch">Branch Center (Unapotoka) <span class="text-danger">*</span></label>
 													<select class="form-control" id="sender_branch" name="sender_branch" required>
 														<option value="">Select Branch</option>
 														{% for branch in branches %}
@@ -320,7 +348,7 @@
 													</div>
 												</div>
 												<div class="form-group">
-													<label for="receiver_branch">Branch Center <span class="text-danger">*</span></label>
+													<label for="receiver_branch">Branch Center (Unapokwenda) <span class="text-danger">*</span></label>
 													<select class="form-control" id="receiver_branch" name="receiver_branch" required>
 														<option value="">Select Branch</option>
 														{% for branch in branches %}
@@ -337,6 +365,17 @@
 													<label for="cargo_description">Description <span class="text-danger">*</span></label>
 													<textarea class="form-control" id="cargo_description" name="cargo_description" rows="2" required></textarea>
 												</div>
+												<div class="form-group">
+													<label for="cargo_image">Cargo Image (Picha ya mzigo)</label>
+													<div class="custom-file">
+														<input type="file" class="custom-file-input" id="cargo_image" name="cargo_image" accept="image/*">
+														<label class="custom-file-label" for="cargo_image">Choose image...</label>
+													</div>
+													<small class="form-text text-muted">Upload a photo of the cargo (optional)</small>
+													<div id="imagePreview" class="mt-2" style="display: none;">
+														<img id="previewImg" src="" alt="Cargo preview" style="max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 5px;">
+													</div>
+												</div>
 												<div class="row">
 													<div class="col-md-4">
 														<div class="form-group">
@@ -352,15 +391,15 @@
 													</div>
 													<div class="col-md-4">
 														<div class="form-group">
-															<label for="cargo_value">Value (TZS) <span class="text-danger">*</span></label>
+															<label for="cargo_value">Value (Thamani ya mzigo) (TZS) <span class="text-danger">*</span></label>
 															<input type="number" class="form-control" id="cargo_value" name="cargo_value" min="0" step="0.01" required>
 														</div>
 													</div>
 												</div>
 												<div class="form-group">
 													<label for="shipping_amount">Shipping Amount (TZS) <span class="text-danger">*</span></label>
-													<input type="number" class="form-control" id="shipping_amount" name="shipping_amount" min="0" step="0.01" required readonly style="background-color: #f0f0f0;">
-													<small class="form-text text-muted">Auto-calculated based on cargo value</small>
+													<input type="number" class="form-control" id="shipping_amount" name="shipping_amount" min="0" step="0.01" required placeholder="Enter shipping amount">
+													<small class="form-text text-muted">Enter the shipping fee amount</small>
 												</div>
 											</div>
 											<div class="modal-footer">
@@ -391,34 +430,25 @@
 
 	{% block extra_js %}
 	<script>
-		function calculateShippingAmount() {
-			const cargoValue = document.getElementById('cargo_value').value;
-			
-			if (cargoValue) {
-				fetch(`/api/calculate-shipping-fee/?cargo_value=${cargoValue}`)
-					.then(response => response.json())
-					.then(data => {
-						if (data.success) {
-							document.getElementById('shipping_amount').value = data.shipping_amount.toFixed(2);
-						} else {
-							document.getElementById('shipping_amount').value = '';
-							Swal.fire({
-								icon: 'warning',
-								title: 'Shipping Fee Not Found',
-								text: data.message || 'No shipping fee configuration found for this cargo value',
-								timer: 3000,
-								showConfirmButton: false
-							});
-						}
-					})
-					.catch(error => {
-						console.error('Error calculating shipping fee:', error);
-					});
+		// Image preview handler
+		document.getElementById('cargo_image').addEventListener('change', function(e) {
+			const file = e.target.files[0];
+			if (file) {
+				// Update label
+				const label = document.querySelector('.custom-file-label');
+				label.textContent = file.name;
+				
+				// Show preview
+				const reader = new FileReader();
+				reader.onload = function(e) {
+					document.getElementById('previewImg').src = e.target.result;
+					document.getElementById('imagePreview').style.display = 'block';
+				};
+				reader.readAsDataURL(file);
 			}
-		}
+		});
 		
 		$('#registerCargoModal').on('shown.bs.modal', function () {
-			document.getElementById('cargo_value').addEventListener('input', calculateShippingAmount);
 			
 			document.getElementById('registerCargoForm').addEventListener('submit', function(e) {
 				e.preventDefault();

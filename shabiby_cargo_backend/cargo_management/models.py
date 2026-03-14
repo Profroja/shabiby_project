@@ -42,6 +42,11 @@ class CargoCenter(models.Model):
     """Model for Cargo Centers (Branches)"""
     center_name = models.CharField(max_length=200, unique=True)
     location = models.CharField(max_length=100)
+    branch_code = models.CharField(
+        max_length=3,
+        unique=True,
+        help_text="3-letter branch code (e.g., DAR, DOD, MWA)"
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -54,6 +59,11 @@ class CargoCenter(models.Model):
     
     def __str__(self):
         return f"{self.center_name} - {self.location}"
+    
+    @property
+    def name(self):
+        """Alias for location for compatibility"""
+        return self.location
 
 
 class Agent(models.Model):
@@ -120,11 +130,6 @@ class Vehicle(models.Model):
     company_owner = models.CharField(
         max_length=200,
         help_text="Company or owner name"
-    )
-    registration_number = models.CharField(
-        max_length=50,
-        unique=True,
-        help_text="Vehicle registration number"
     )
     plate_number = models.CharField(
         max_length=20,
@@ -195,6 +200,16 @@ class Customer(models.Model):
         return f"{self.full_name} - {self.mobile_number}"
     
     @property
+    def name(self):
+        """Alias for full_name for compatibility"""
+        return self.full_name
+    
+    @property
+    def phone(self):
+        """Alias for mobile_number for compatibility"""
+        return self.mobile_number
+    
+    @property
     def branch_location(self):
         """Return customer's branch location"""
         return self.location.location if self.location else 'No Location'
@@ -259,6 +274,12 @@ class Cargo(models.Model):
         null=True,
         blank=True,
         help_text="Weight of cargo in kilograms"
+    )
+    cargo_image = models.ImageField(
+        upload_to='cargo_images/',
+        null=True,
+        blank=True,
+        help_text="Photo/image of the cargo"
     )
     
     # Shipping information
@@ -442,3 +463,37 @@ class ShippingRate(models.Model):
     def calculate_shipping_cost(self, weight_kg):
         """Calculate shipping cost based on weight"""
         return self.base_rate + (self.rate_per_kg * weight_kg)
+
+
+class CargoGroup(models.Model):
+    """Model for grouping multiple cargos for batch onboarding/offboarding"""
+    group_id = models.CharField(max_length=50, unique=True, help_text="Unique group identifier")
+    qr_code_data = models.TextField(help_text="QR code data for scanning")
+    cargos = models.ManyToManyField('Cargo', related_name='cargo_groups', help_text="Cargos in this group")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_cargo_groups')
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending Onboard'),
+            ('onboarded', 'Onboarded'),
+            ('offboarded', 'Offboarded'),
+        ],
+        default='pending'
+    )
+    onboarded_at = models.DateTimeField(null=True, blank=True)
+    onboarded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='onboarded_cargo_groups')
+    offboarded_at = models.DateTimeField(null=True, blank=True)
+    offboarded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='offboarded_cargo_groups')
+    
+    class Meta:
+        db_table = 'cargo_groups'
+        verbose_name = 'Cargo Group'
+        verbose_name_plural = 'Cargo Groups'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Group {self.group_id} ({self.cargos.count()} cargos)"
+    
+    def get_cargo_count(self):
+        return self.cargos.count()

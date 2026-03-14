@@ -182,25 +182,19 @@
 					<div class="row">
 						<div class="col-md-6">
 							<div class="form-group">
-								<label for="registrationNumber">Registration Number <span class="text-danger">*</span></label>
-								<input type="text" class="form-control" id="registrationNumber" name="registrationNumber" placeholder="Registration Number" required>
-							</div>
-						</div>
-						<div class="col-md-6">
-							<div class="form-group">
 								<label for="maxWeight">Max Weight (Tons) <span class="text-danger">*</span></label>
 								<input type="number" step="0.01" class="form-control" id="maxWeight" name="maxWeight" placeholder="e.g., 5.5" required>
 							</div>
 						</div>
-					</div>
-					<div class="row">
 						<div class="col-md-6">
 							<div class="form-group">
 								<label for="chassisNumber">Chassis Number (Optional)</label>
 								<input type="text" class="form-control" id="chassisNumber" name="chassisNumber" placeholder="Chassis Number">
 							</div>
 						</div>
-						<div class="col-md-6">
+					</div>
+					<div class="row">
+						<div class="col-md-12">
 							<div class="form-group">
 								<label for="isActive">Status</label>
 								<div class="form-check">
@@ -273,25 +267,19 @@
 					<div class="row">
 						<div class="col-md-6">
 							<div class="form-group">
-								<label for="editRegistrationNumber">Registration Number <span class="text-danger">*</span></label>
-								<input type="text" class="form-control" id="editRegistrationNumber" name="registrationNumber" required>
-							</div>
-						</div>
-						<div class="col-md-6">
-							<div class="form-group">
 								<label for="editMaxWeight">Max Weight (Tons) <span class="text-danger">*</span></label>
 								<input type="number" step="0.01" class="form-control" id="editMaxWeight" name="maxWeight" required>
 							</div>
 						</div>
-					</div>
-					<div class="row">
 						<div class="col-md-6">
 							<div class="form-group">
 								<label for="editChassisNumber">Chassis Number (Optional)</label>
 								<input type="text" class="form-control" id="editChassisNumber" name="chassisNumber">
 							</div>
 						</div>
-						<div class="col-md-6">
+					</div>
+					<div class="row">
+						<div class="col-md-12">
 							<div class="form-group">
 								<label for="editIsActive">Status</label>
 								<div class="form-check">
@@ -353,11 +341,21 @@
 			vehicleModel: formData.get('vehicleModel'),
 			companyOwner: formData.get('companyOwner'),
 			plateNumber: formData.get('plateNumber'),
-			registrationNumber: formData.get('registrationNumber'),
 			maxWeight: formData.get('maxWeight'),
 			chassisNumber: formData.get('chassisNumber') || null,
 			isActive: document.getElementById('isActive').checked
 		};
+
+		// Show loading animation
+		Swal.fire({
+			title: 'Adding Vehicle...',
+			html: 'Please wait while we add the new vehicle.',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
 
 		// Send data to backend API
 		fetch('/api/vehicles/create/', {
@@ -369,6 +367,7 @@
 		})
 		.then(response => response.json())
 		.then(result => {
+			Swal.close();
 			if (result.success) {
 				Swal.fire({
 					icon: 'success',
@@ -393,6 +392,7 @@
 			}
 		})
 		.catch(error => {
+			Swal.close();
 			console.error('Error:', error);
 			Swal.fire({
 				icon: 'error',
@@ -416,7 +416,6 @@
 				document.getElementById('editVehicleModel').value = vehicle.vehicleModel;
 				document.getElementById('editCompanyOwner').value = vehicle.companyOwner;
 				document.getElementById('editPlateNumber').value = vehicle.plateNumber;
-				document.getElementById('editRegistrationNumber').value = vehicle.registrationNumber;
 				document.getElementById('editMaxWeight').value = vehicle.maxWeight;
 				document.getElementById('editChassisNumber').value = vehicle.chassisNumber || '';
 				document.getElementById('editIsActive').checked = vehicle.isActive;
@@ -466,12 +465,22 @@
 			vehicleModel: formData.get('vehicleModel'),
 			companyOwner: formData.get('companyOwner'),
 			plateNumber: formData.get('plateNumber'),
-			registrationNumber: formData.get('registrationNumber'),
 			maxWeight: formData.get('maxWeight'),
 			chassisNumber: formData.get('chassisNumber') || null,
 			isActive: document.getElementById('editIsActive').checked
 		};
 		const vehicleId = data.vehicleId;
+
+		// Show loading animation
+		Swal.fire({
+			title: 'Updating Vehicle...',
+			html: 'Please wait while we update the vehicle.',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
 
 		// Send update request to backend API
 		fetch(`/api/vehicles/${vehicleId}/update/`, {
@@ -483,6 +492,7 @@
 		})
 		.then(response => response.json())
 		.then(result => {
+			Swal.close();
 			if (result.success) {
 				Swal.fire({
 					icon: 'success',
@@ -503,6 +513,7 @@
 			}
 		})
 		.catch(error => {
+			Swal.close();
 			console.error('Error:', error);
 			Swal.fire({
 				icon: 'error',
